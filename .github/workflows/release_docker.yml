@@ -1,92 +1,50 @@
-name: Docker Release CI
+name: Docker release
 
 on:
-  # only runs when a release/v* branch is merged into main (resolve-version step)
-  pull_request:
+  push:
     branches:
       - main
-    types: [opened, closed, synchronize, reopened]
+    tags-ignore:
+      - '**'
   workflow_dispatch:
     inputs:
-      tags:
-        description: 'Comma-separated Docker tags (e.g. latest,0.1.4)'
-        required: true
-      build-channel:
-        description: 'Build channel (e.g. stable, nightly)'
-        required: false
-        default: 'stable'
-      archs:
-        description: 'Comma-separated architectures to build (e.g. arm64,amd64)'
-        required: false
-        default: 'arm64,amd64'
-      push:
-        description: 'Push image to Docker Hub'
-        type: boolean
-        required: false
-        default: true
+      tag:
+        description: 'Docker image tag'
+        default: 'latest'
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
-  # will build the ctx config based on how this workflow was triggered
-  resolve-config:
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.pull_request.head.ref, 'release/v')
-    name: Resolve build configuration
-    runs-on: ubuntu-22.04
-    outputs:
-      tags: ${{ steps.config.outputs.tags }}
-      push: ${{ steps.config.outputs.push }}
-      archs: ${{ steps.config.outputs.archs }}
-      build-channel: ${{ steps.config.outputs.build-channel }}
+  publish:
+    runs-on: ubuntu-latest
     steps:
-      - name: Resolve configuration
-        id: config
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tags=${{ github.event.inputs.tags }}" >> $GITHUB_OUTPUT
-            echo "push=${{ github.event.inputs.push }}" >> $GITHUB_OUTPUT
-            echo "archs=${{ github.event.inputs.archs }}" >> $GITHUB_OUTPUT
-            echo "build-channel=${{ github.event.inputs.build-channel }}" >> $GITHUB_OUTPUT
-          else
-            VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed -e 's/release\/v//')
-            if [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
-              echo "tags=latest,$VERSION" >> $GITHUB_OUTPUT
-              echo "push=true" >> $GITHUB_OUTPUT
-              echo "archs=arm64,amd64" >> $GITHUB_OUTPUT
-            else
-              echo "tags=$VERSION" >> $GITHUB_OUTPUT
-              echo "push=false" >> $GITHUB_OUTPUT
-              echo "archs=amd64" >> $GITHUB_OUTPUT
-            fi
-            echo "build-channel=stable" >> $GITHUB_OUTPUT
-          fi
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Print configuration
-        run: |
-          echo "tags:          ${{ steps.config.outputs.tags }}"
-          echo "push:          ${{ steps.config.outputs.push }}"
-          echo "archs:         ${{ steps.config.outputs.archs }}"
-          echo "channel: ${{ steps.config.outputs.build-channel }}"
-
-  build-stable-docker:
-    name: Build docker image
-    runs-on: [self-hosted]
-    needs: [resolve-config]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Build and push docker image
-        uses: ./.github/actions/build-docker
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: rubilmax
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          tags: ${{ needs.resolve-config.outputs.tags }}
-          build-channel: ${{ needs.resolve-config.outputs.build-channel }}
-          push: ${{ needs.resolve-config.outputs.push }}
-          archs: ${{ needs.resolve-config.outputs.archs }}
-          discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: rubilmax/stump:${{ inputs.tag || 'latest' }}
+          build-args: |
+            GIT_REV=${{ github.sha }}
+            BUILD_CHANNEL=stable
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
