@@ -7,7 +7,7 @@ FROM debian:bookworm-slim AS pdfium
 ARG TARGETARCH
 
 # Update and install curl and tar
-RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y curl tar
 
 # Download and extract the PDFium binaries
@@ -43,7 +43,7 @@ FROM debian:bookworm-slim AS kepubify
 ARG TARGETARCH
 ARG KEPUBIFY_VERSION=4.0.4
 
-RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y ca-certificates curl
 
 RUN set -ex; \
@@ -99,7 +99,7 @@ ARG TARGETARCH
 ENV GIT_REV=${GIT_REV}
 ENV BUILD_CHANNEL=${BUILD_CHANNEL}
 
-RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y \
         build-essential \
         cmake \
