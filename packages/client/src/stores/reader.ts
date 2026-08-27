@@ -1,4 +1,4 @@
-import { ReadingDirection, ReadingImageScaleFit, ReadingMode } from '@stump/graphql'
+import { ReadingDirection, ReadingImageScaleFit, ReadingMode, SupportedFont } from '@stump/graphql'
 import { create } from 'zustand'
 import { createJSONStorage, devtools, persist, StateStorage } from 'zustand/middleware'
 
@@ -132,7 +132,8 @@ export type ReaderStore = {
 
 export const DEFAULT_BOOK_PREFERENCES = {
 	animatedReader: false,
-	fontSize: 13,
+	fontSize: 16,
+	fontFamily: SupportedFont.Literata,
 	lineHeight: 1.5,
 	brightness: 1,
 	readingMode: ReadingMode.Paged,

@@ -1,4 +1,10 @@
-import { queryClient, useGraphQLMutation, useSDK, useSuspenseGraphQL } from '@stump/client'
+import {
+	DEFAULT_BOOK_PREFERENCES,
+	queryClient,
+	useGraphQLMutation,
+	useSDK,
+	useSuspenseGraphQL,
+} from '@stump/client'
 import {
 	Bookmark,
 	EpubJsReaderQuery,
@@ -22,7 +28,7 @@ import { useBookTimer } from '@/stores/reader'
 
 import { EpubContent } from './context'
 import EpubReaderContainer from './EpubReaderContainer'
-import { darkVariantText, toFamilyName } from './themes'
+import { darkVariantText, lightVariantText, toFamilyName } from './themes'
 
 // TODO: Fix all lifecycle lints
 // TODO: Consider a total re-write or at least thorough review of this component, it was written a while
@@ -449,7 +455,7 @@ export default function EpubJsReader({ id, isIncognito, startFromBeginning }: Ep
 				rendition.themes.register('dark-variant', darkVariantText)
 				rendition.themes.select('dark-variant')
 			} else {
-				rendition.themes.register('light-variant', {})
+				rendition.themes.register('light-variant', lightVariantText)
 				rendition.themes.select('light-variant')
 			}
 		},
@@ -458,9 +464,14 @@ export default function EpubJsReader({ id, isIncognito, startFromBeginning }: Ep
 
 	/**	A function for applying updates to the the epub reader preferences to the epubjs rendition instance */
 	const updateEpubPreferences = useCallback(
-		(rendition: Rendition, fontSize?: number, lineHeight?: number, fontFamily?: string) => {
+		(
+			rendition: Rendition,
+			fontSize: number = DEFAULT_BOOK_PREFERENCES.fontSize,
+			lineHeight: number = DEFAULT_BOOK_PREFERENCES.lineHeight,
+			fontFamily: string = DEFAULT_BOOK_PREFERENCES.fontFamily,
+		) => {
 			const newStylesheetRules = {
-				'a, blockquote, body, h1, h2, h3, h4, h5, p, span, ul': {
+				'a, blockquote, body, h1, h2, h3, h4, h5, h6, li, ol, p, span, ul': {
 					'font-size': `${fontSize}px !important`,
 					'line-height': `${lineHeight} !important`,
 					'font-family': `${toFamilyName(fontFamily as SupportedFont)} !important`,
@@ -539,7 +550,7 @@ export default function EpubJsReader({ id, isIncognito, startFromBeginning }: Ep
 				//? TODO: I guess here I would need to wait for and load in custom theme blobs...
 				//* Color manipulation reference: https://github.com/futurepress/epub.js/issues/1019
 				rendition_.themes.register('dark-variant', darkVariantText)
-				rendition_.themes.register('light-variant', {})
+				rendition_.themes.register('light-variant', lightVariantText)
 
 				rendition_.on('relocated', handleLocationChange)
 

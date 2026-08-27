@@ -8,19 +8,28 @@ export interface EpubTheme {
 // blockquote: {p: {color: '...'}}
 
 // Note: Not React CSS, has to be true CSS fields. E.g. font-size not fontSize.
-export const darkVariantText: EpubTheme = {
-	a: { color: '#4299E1' },
-	blockquote: { color: 'rgb(168 172 176) !important' },
-	body: { color: '#E8EDF4', background: '#161719' },
-	h1: { color: '#E8EDF4' },
-	h2: { color: '#E8EDF4' },
-	h3: { color: '#E8EDF4' },
-	h4: { color: '#E8EDF4' },
-	h5: { color: '#E8EDF4' },
-	p: { color: '#E8EDF4 !important', 'font-size': 'unset' },
-	span: { color: '#E8EDF4' },
-	ul: { color: '#E8EDF4' },
-}
+const createEpubTheme = (
+	foreground: string,
+	background: string,
+	mutedForeground: string,
+	linkForeground: string,
+): EpubTheme => ({
+	'body, body *': {
+		color: `${foreground} !important`,
+		'background-color': 'transparent !important',
+	},
+	'html, body': { 'background-color': `${background} !important` },
+	p: { 'font-size': 'unset' },
+	'blockquote, blockquote *': { color: `${mutedForeground} !important` },
+	'a, a *': {
+		color: `${linkForeground} !important`,
+		'text-decoration': 'underline !important',
+	},
+})
+
+export const lightVariantText = createEpubTheme('#000000', '#FFFFFF', '#4A4A4A', '#005A9C')
+
+export const darkVariantText = createEpubTheme('#E8EDF4', '#161719', '#A8ACB0', '#4299E1')
 
 export const toFamilyName = (font: SupportedFont) => {
 	switch (font) {

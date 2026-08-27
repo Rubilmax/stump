@@ -1,3 +1,4 @@
+import { DEFAULT_BOOK_PREFERENCES } from '@stump/client'
 import { Input } from '@stump/components'
 import { useLocaleContext } from '@stump/i18n'
 import React from 'react'
@@ -29,7 +30,7 @@ export default function DefaultFontSize() {
 			<Input
 				label={t(getKey('fontSize.label'))}
 				description={t(getKey('fontSize.description'))}
-				value={fontSize ?? 13}
+				value={fontSize ?? DEFAULT_BOOK_PREFERENCES.fontSize}
 				onChange={onValueChange}
 				type="number"
 				min={0}
