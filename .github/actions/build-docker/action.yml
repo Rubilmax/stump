@@ -28,46 +28,18 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Get commit short sha
-      run: echo "GIT_REV=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
-      shell: bash
-
-    - name: Format tags
+    - name: Configure build
+      env:
+        INPUT_TAGS: ${{ inputs.tags }}
       run: |
-        echo "FORMATTED_TAGS=$(echo ${{ inputs.tags }} | sed -e 's/,/ /g')" >> $GITHUB_ENV
-        echo "LOCAL_IMAGES=$(echo ${{ inputs.tags }} | sed -e 's/,/,localhost\/stump:/g' | sed -e 's/^/localhost\/stump:/')" >> $GITHUB_ENV
+        echo "GIT_REV=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+        echo "FORMATTED_TAGS=${INPUT_TAGS//,/ }" >> "$GITHUB_ENV"
       shell: bash
-
-    - name: Sanity check
-      run: |
-        echo "TAGS=${{ inputs.tags }}"
-        echo "FORMATTED_TAGS=${{ env.FORMATTED_TAGS }}"
-        echo "LOCAL_IMAGES=${{ env.LOCAL_IMAGES }}"
-        echo "GIT_REV=${{ env.GIT_REV }}"
-      shell: bash
-
-    - name: Setup rust
-      uses: ./.github/actions/setup-rust
-      with:
-        # Note: until some sort of local caching is implemented, we don't want to cache dependencies
-        # because the network overhead is too high and eats up lots of time
-        cache-dependencies: ${{ runner.environment != 'self-hosted' }}
-        cache-locality: docker
 
     # We only need QEMU when an arm* platform is targeted
-    - name: Check QEMU requirement
-      id: check-qemu
-      run: |
-        if [[ ${{ inputs.archs }} == *"arm"* ]]; then
-          echo "SETUP_QEMU=1" >> $GITHUB_OUTPUT
-        else
-          echo "SETUP_QEMU=0" >> $GITHUB_OUTPUT
-        fi
-      shell: bash
-
     - name: Set up QEMU
       uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4
-      if: ${{ steps.check-qemu.outputs.SETUP_QEMU == '1' }}
+      if: ${{ contains(inputs.archs, 'arm') }}
       with:
         platforms: linux/arm64
 
@@ -103,11 +75,7 @@ runs:
           org.opencontainers.image.revision=${{ env.GIT_REV }}
         containerfiles: |
           ./docker/Dockerfile
-
-    - name: Echo build outputs
-      run: |
-        echo "${{ toJSON(steps.build.outputs) }}"
-      shell: bash
+        layers: true
 
     - name: Push to registry
       id: push
@@ -119,11 +87,6 @@ runs:
         username: ${{ inputs.username }}
         password: ${{ inputs.password }}
         registry: docker.io/aaronleopold
-
-    - name: Echo push outputs
-      run: |
-        echo "${{ toJSON(steps.push.outputs) }}"
-      shell: bash
 
     - name: Discord notification
       if: ${{ success() && inputs.push == 'true' && inputs.discord-webhook != '' }}

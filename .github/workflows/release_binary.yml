@@ -29,12 +29,17 @@ jobs:
     steps:
       - name: Resolve version
         id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            version=$INPUT_VERSION
           else
-            echo "version=$(echo "${{ github.event.pull_request.head.ref }}" | sed -e 's/release\/v//')" >> $GITHUB_OUTPUT
+            version=${HEAD_REF#release/v}
           fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Print version
         run: echo "Building release for v${{ steps.resolve.outputs.version }}"
@@ -52,7 +57,7 @@ jobs:
 
   # build the server binary for each supported platform
   build-binary:
-    needs: [resolve-version, build-webapp]
+    needs: [resolve-version]
     strategy:
       matrix:
         # See https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
@@ -79,26 +84,18 @@ jobs:
       - name: Build stump server
         uses: ./.github/actions/build-server
 
-      - name: Copy bundled web app
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: webapp
-          path: ./staging/client
-
-      - name: Prepare artifact
-        run: mv target/release/${{ matrix.artifact_filename }} ./staging/${{ matrix.artifact_filename }}
-
       - name: Upload server artifact
         uses: ./.github/actions/upload-artifact
         with:
           upload-name: ${{ matrix.artifact_name }}
-          upload-path: staging
+          upload-path: target/release/${{ matrix.artifact_filename }}
 
   # create the release and attach the platform artifacts
   create-release:
-    needs: [resolve-version, build-binary]
+    needs: [resolve-version, build-webapp, build-binary]
     runs-on: ubuntu-22.04
-    permissions: write-all
+    permissions:
+      contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.resolve-version.outputs.version }}
@@ -106,48 +103,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Download artifact (Linux)
+      - name: Download server artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: linux-artifact
-          path: StumpServer-linux
+          pattern: '*-artifact'
 
-      - name: Download artifact (macOS Intel)
+      - name: Download web application
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: macos-intel-artifact
-          path: StumpServer-macos-intel
-
-      - name: Download artifact (macOS ARM)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: macos-arm-artifact
-          path: StumpServer-macos-arm
-
-      - name: Download artifact (Windows)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: windows-artifact
-          path: StumpServer-windows
-
-      - name: Install dependencies
-        run: sudo apt-get install -y gh zip
+          name: webapp
+          path: webapp
 
       - name: Zip artifacts
         run: |
-          cd StumpServer-linux && zip -r ../linux-build-results.zip * && cd ..
-          cd StumpServer-macos-intel && zip -r ../macos-intel-build-results.zip * && cd ..
-          cd StumpServer-macos-arm && zip -r ../macos-arm-build-results.zip * && cd ..
-          cd StumpServer-windows && zip -r ../windows-build-results.zip * && cd ..
+          cp -R webapp linux-artifact/client
+          cp -R webapp macos-intel-artifact/client
+          cp -R webapp macos-arm-artifact/client
+          cp -R webapp windows-artifact/client
+          cd linux-artifact && zip -r ../linux-build-results.zip ./* && cd ..
+          cd macos-intel-artifact && zip -r ../macos-intel-build-results.zip ./* && cd ..
+          cd macos-arm-artifact && zip -r ../macos-arm-build-results.zip ./* && cd ..
+          cd windows-artifact && zip -r ../windows-build-results.zip ./* && cd ..
 
       - name: Create release and upload artifacts
         run: |
-          gh release create v$VERSION \
+          gh release create "v$VERSION" \
             --draft \
             --target main \
             --title "v$VERSION" \
             --generate-notes \
-            linux-build-results.zip#StumpServer-$VERSION-linux-x86_64.zip \
-            macos-intel-build-results.zip#StumpServer-$VERSION-macos-intel.zip \
-            macos-arm-build-results.zip#StumpServer-$VERSION-macos-arm.zip \
-            windows-build-results.zip#StumpServer-$VERSION-windows-x86_64.zip
+            "linux-build-results.zip#StumpServer-$VERSION-linux-x86_64.zip" \
+            "macos-intel-build-results.zip#StumpServer-$VERSION-macos-intel.zip" \
+            "macos-arm-build-results.zip#StumpServer-$VERSION-macos-arm.zip" \
+            "windows-build-results.zip#StumpServer-$VERSION-windows-x86_64.zip"

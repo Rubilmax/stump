@@ -4,25 +4,11 @@ description: Compile the Stump Rust server
 runs:
   using: composite
   steps:
-    - name: Checkout project
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
     - name: Setup rust
       uses: ./.github/actions/setup-rust
+      with:
+        install-system-dependencies: false
 
-    # This action can be called to build in a Linux, macOS, or Windows runner
-    # This step only runs when using Linux
-    - name: Compile server (Linux)
-      if: runner.os == 'Linux'
+    - name: Compile server
       shell: bash
-      run: cargo build --package stump_server --release
-    - name: Compile server (macOS)
-      # Alternatively, when running macOS
-      if: runner.os == 'macOS'
-      shell: bash
-      run: cargo build --package stump_server --release
-    - name: Compile server (Windows)
-      # Alternatively, when running Windows
-      if: runner.os == 'Windows'
-      shell: powershell
       run: cargo build --package stump_server --release

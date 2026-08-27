@@ -7,10 +7,10 @@ inputs:
     required: false
     default: 'true'
 
-  cache-locality:
-    description: 'The locality of the cache, e.g. either local build or docker build'
+  install-system-dependencies:
+    description: 'Install desktop system dependencies'
     required: false
-    default: 'local' # 'local' or 'docker'
+    default: 'true'
 
 runs:
   using: composite
@@ -22,7 +22,7 @@ runs:
         components: rustfmt, clippy
 
     - name: Configure environment
-      if: ${{ runner.environment != 'self-hosted' && runner.os != 'Windows' }}
+      if: ${{ inputs.install-system-dependencies == 'true' && runner.environment != 'self-hosted' && runner.os != 'Windows' }}
       shell: bash
       run: CHECK_NODE=0 CHECK_CARGO=0 DEV_SETUP=0 ./scripts/system-setup.sh
 

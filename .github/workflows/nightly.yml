@@ -24,14 +24,29 @@ jobs:
         with:
           base: 'nightly'
           filters: |
-            apps: ./apps/**
+            apps:
+              - './apps/desktop/src/**'
+              - './apps/server/**'
+              - './apps/web/**'
             core: ./core/**
             crates: ./crates/**
             docker: ./docker/**
             packages: ./packages/**
+            root:
+              - './.cargo/**'
+              - './.dockerignore'
+              - './.npmrc'
+              - './Cargo.lock'
+              - './Cargo.toml'
+              - './lerna.json'
+              - './package.json'
+              - './rust-toolchain.toml'
+              - './tsconfig.json'
+              - './tsconfig.options.json'
+              - './yarn.lock'
             workflow:
               - './.github/workflows/nightly.yml'
-              - './.github/actions/**'
+              - './.github/actions/build-docker/action.yml'
 
   nightly-docker-build:
     needs: code-changes-check
@@ -42,19 +57,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      # The build on PRs is only for linux/amd64 as a sanity check. The build on pushes will
-      # actually build all the supported platforms and push them to dockerhub
-      - name: Configure environment
-        run: |
-          echo "LOAD=${{ github.event_name == 'pull_request' }}" >> $GITHUB_ENV
-          echo "PUSH=${{ github.event_name == 'push' }}" >> $GITHUB_ENV
-
-          if [[ ${{ github.event_name }} == 'pull_request' ]]; then
-            echo "ARCHS=amd64" >> $GITHUB_ENV
-          else
-            echo "ARCHS=arm64,amd64" >> $GITHUB_ENV
-          fi
-
       - name: Setup and build docker image
         uses: ./.github/actions/build-docker
         with:
@@ -62,6 +64,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           tags: 'nightly'
           build-channel: 'nightly'
-          push: ${{ env.PUSH }}
-          archs: ${{ env.ARCHS }}
+          push: ${{ github.event_name == 'push' }}
+          archs: ${{ github.event_name == 'pull_request' && 'amd64' || 'arm64,amd64' }}
           discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}

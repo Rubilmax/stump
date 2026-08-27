@@ -1,5 +1,8 @@
 node_modules
 **/node_modules
+.context
+.github
+.vscode
 build
 dist
 static
@@ -13,3 +16,6 @@ target
 # doesn't yell at me
 docs
 apps/expo
+apps/desktop/src-tauri
+core/integration-tests
+core/benches/data

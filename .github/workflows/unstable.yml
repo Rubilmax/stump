@@ -31,14 +31,29 @@ jobs:
         with:
           base: 'unstable'
           filters: |
-            apps: ./apps/**
+            apps:
+              - './apps/desktop/src/**'
+              - './apps/server/**'
+              - './apps/web/**'
             core: ./core/**
             crates: ./crates/**
             docker: ./docker/**
             packages: ./packages/**
+            root:
+              - './.cargo/**'
+              - './.dockerignore'
+              - './.npmrc'
+              - './Cargo.lock'
+              - './Cargo.toml'
+              - './lerna.json'
+              - './package.json'
+              - './rust-toolchain.toml'
+              - './tsconfig.json'
+              - './tsconfig.options.json'
+              - './yarn.lock'
             workflow:
               - './.github/workflows/unstable.yml'
-              - './.github/actions/**'
+              - './.github/actions/build-docker/action.yml'
 
   unstable-docker-build:
     needs: code-changes-check
@@ -58,7 +73,6 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: 'unstable'
           build-channel: 'unstable'
-          load: ${{ github.event_name == 'pull_request' }}
           push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
           archs: 'amd64'
           discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
