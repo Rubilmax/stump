@@ -2,7 +2,7 @@ use crate::routers::kobo::{kepub, proxy, sync::KoboSync};
 use axum::{
 	body::to_bytes,
 	extract::{Path, Request, State},
-	http::{HeaderMap, HeaderValue},
+	http::{HeaderMap, HeaderValue, StatusCode},
 	middleware::{self, Next},
 	response::{IntoResponse, Json, Redirect, Response},
 	routing::{any, get},
@@ -193,6 +193,10 @@ async fn initialization(
 	);
 
 	let upstream = match proxy::forward(request, &api_key, None).await {
+		// Kobo refreshes expired OAuth tokens only after receiving the Store's 401.
+		Ok(response) if response.status() == StatusCode::UNAUTHORIZED => {
+			return Ok(response.into_response())
+		},
 		Ok(response) if response.is_success() => response.json().ok(),
 		Ok(response) => {
 			tracing::warn!(status = %response.status(), "Kobo initialization proxy failed");
