@@ -25,7 +25,6 @@ export const BOOK_READER_SCENE_QUERY = graphql(`
 			extension
 			readProgress {
 				percentageCompleted
-				epubcfi
 				page
 				elapsedSeconds
 			}
@@ -157,7 +156,6 @@ function BookReaderScene({ book }: Props) {
 		if (book.extension.match(EBOOK_EXTENSION)) {
 			navigate(
 				paths.bookReader(book.id, {
-					epubcfi: book.readProgress?.epubcfi || null,
 					isEpub: true,
 					isIncognito,
 					startFromBeginning,

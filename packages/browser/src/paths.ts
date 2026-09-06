@@ -9,7 +9,6 @@ type BookReaderParams = {
 	page?: number
 	isEpub?: boolean
 	isPdf?: boolean
-	epubcfi?: string | null
 	startFromBeginning?: boolean
 	isAnimated?: boolean
 	isStreaming?: boolean
@@ -57,7 +56,6 @@ const pathsInternal = {
 		{
 			isEpub,
 			isPdf,
-			epubcfi,
 			startFromBeginning,
 			isAnimated,
 			page,
@@ -75,8 +73,7 @@ const pathsInternal = {
 			searchParams.append('start', 'true')
 		}
 
-		if (isEpub || !!epubcfi) {
-			searchParams.append('stream', 'false')
+		if (isEpub) {
 			return `${baseUrl}/epub-reader?${searchParams.toString()}`
 		}
 

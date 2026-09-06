@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 import useKoboSync from '@/components/book/useKoboSync'
 import { useAppContext } from '@/context'
 import { usePaths } from '@/paths'
+import { isEbookExtension, isEbookReadProgress } from '@/utils/readingProgress'
 
 import DeleteHistoryConfirmation from './DeleteHistoryConfirmation'
 import EmailBookDialog from './EmailBookDialog'
@@ -114,10 +115,14 @@ export default function BookActionMenu({ book }: Props) {
 
 	const continueReadingLink = useMemo(() => {
 		if (!book.readProgress) return undefined
-		const { page, epubcfi } = book.readProgress
-		if (epubcfi) {
-			return paths.bookReader(book.id, { epubcfi, isEpub: true })
-		} else if (!!page && page > 0) {
+		const { page } = book.readProgress
+		if (
+			isEbookExtension(book.extension) ||
+			isEbookReadProgress(book.readProgress, book.extension)
+		) {
+			return paths.bookReader(book.id, { isEpub: true })
+		}
+		if (page && page > 0) {
 			return paths.bookReader(book.id, { page })
 		}
 		return undefined

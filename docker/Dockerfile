@@ -45,7 +45,7 @@ COPY docker/licenses/kepubify.txt /licenses/kepubify/LICENSE
 # Frontend Build Stage
 # ------------------------------------------------------------------------------
 
-FROM --platform=$BUILDPLATFORM node:22.14.0-alpine3.21 AS frontend
+FROM --platform=$BUILDPLATFORM node:24.20-alpine3.23 AS frontend
 
 WORKDIR /app
 
@@ -75,7 +75,7 @@ RUN yarn web build && \
 # Cargo Build Stage
 # ------------------------------------------------------------------------------
 
-FROM rust:1.92-bookworm AS builder
+FROM rust:1.97-bookworm AS builder
 
 ARG TARGETARCH
 
@@ -115,12 +115,12 @@ FROM gcr.io/distroless/cc-debian12:debug
 ARG PORT=10801
 
 LABEL org.opencontainers.image.title="Stump" \
-      org.opencontainers.image.description="A free and open source comics, manga and digital book server with OPDS support" \
-      org.opencontainers.image.source="https://github.com/stumpapp/stump" \
-      org.opencontainers.image.url="https://stumpapp.dev" \
-      org.opencontainers.image.documentation="https://stumpapp.dev/guides" \
-      org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.vendor="stumpapp"
+    org.opencontainers.image.description="A free and open source comics, manga and digital book server with OPDS support" \
+    org.opencontainers.image.source="https://github.com/stumpapp/stump" \
+    org.opencontainers.image.url="https://stumpapp.dev" \
+    org.opencontainers.image.documentation="https://stumpapp.dev/guides" \
+    org.opencontainers.image.licenses="MIT" \
+    org.opencontainers.image.vendor="stumpapp"
 
 RUN [ "/busybox/ln", "-s", "/busybox/sh", "/bin/sh" ]
 RUN ln -s /busybox/env /usr/bin/env

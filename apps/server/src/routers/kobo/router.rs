@@ -154,6 +154,7 @@ async fn proxy_local_miss(request: Request, api_key: &str) -> APIResult<Response
 
 /// A secondary authorization middleware to ensure that the user has access to the
 /// kobo sync endpoints. This is purely for convenience
+#[tracing::instrument(skip_all, err)]
 async fn authorize(req: Request, next: Next) -> APIResult<Response> {
 	let ctx = req
 		.extensions()
@@ -166,6 +167,7 @@ async fn authorize(req: Request, next: Next) -> APIResult<Response> {
 	Ok(next.run(req).await)
 }
 
+#[tracing::instrument(skip_all, err)]
 async fn initialization(
 	HostExtractor(host): HostExtractor,
 	Path(KoboAPIKey { api_key, .. }): Path<KoboAPIKey>,
@@ -241,6 +243,7 @@ fn device_metadata(headers: &HeaderMap) -> serde_json::Map<String, serde_json::V
 	result
 }
 
+#[tracing::instrument(skip_all, err)]
 async fn library_sync(
 	State(ctx): State<AppState>,
 	Extension(req): Extension<AuthContext>,
@@ -420,6 +423,7 @@ async fn proxy_store_sync(
 	.into_response())
 }
 
+#[tracing::instrument(skip_all, fields(book_id = %book_id), err)]
 async fn book_metadata(
 	State(ctx): State<AppState>,
 	Extension(req): Extension<AuthContext>,
@@ -587,6 +591,7 @@ async fn update_book_state(
 	.into_response())
 }
 
+#[tracing::instrument(skip_all, fields(book_id = %book_id, width, height), err)]
 async fn book_thumbnail(
 	State(ctx): State<AppState>,
 	Extension(req): Extension<AuthContext>,
@@ -635,6 +640,7 @@ async fn book_thumbnail(
 	Ok(ImageResponse::new(ContentType::JPEG, jpeg_buffer).into_response())
 }
 
+#[tracing::instrument(skip_all, fields(book_id = %book_id), err)]
 async fn book_download(
 	State(ctx): State<AppState>,
 	Extension(req): Extension<AuthContext>,
