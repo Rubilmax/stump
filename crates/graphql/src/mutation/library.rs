@@ -985,7 +985,7 @@ impl LibraryMutation {
 		Ok(result.rows_affected)
 	}
 
-	/// Enqueue a job to reorganize EPUB files with accepted metadata into author and optional
+	/// Enqueue a job to reorganize EPUB files with metadata into author and optional
 	/// series folders. A true response means the job was queued, not that it completed.
 	#[graphql(guard = "PermissionGuard::one(UserPermission::ManageLibrary)")]
 	async fn organize_library_files(&self, ctx: &Context<'_>, id: ID) -> Result<bool> {

@@ -1122,7 +1122,7 @@ type LibraryFileOrganizationOutput {
 	movedFiles: Int!
 	"The number of EPUB files already at their organized location."
 	alreadyOrganizedFiles: Int!
-	"The number of EPUB files without usable accepted metadata."
+	"The number of EPUB files without usable metadata."
 	skippedFiles: Int!
 	"The number of EPUB files whose destination already existed."
 	conflictedFiles: Int!
@@ -1983,7 +1983,7 @@ type Mutation {
 	"Bulk-set locked metadata fields for all media metadata in a library"
 	setLibraryMediaLockedFields(libraryId: ID!, lockedFields: [MetadataField!]!): Int!
 	"""
-	Enqueue a job to reorganize EPUB files with accepted metadata into author and optional
+	Enqueue a job to reorganize EPUB files with metadata into author and optional
 	series folders. A true response means the job was queued, not that it completed.
 	"""
 	organizeLibraryFiles(id: ID!): Boolean!

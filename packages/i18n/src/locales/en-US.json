@@ -579,7 +579,7 @@
 			"error": "Failed to organize library files",
 			"confirmation": {
 				"title": "Organize library files?",
-				"description": "Move EPUB files with accepted metadata into author and, when available, series folders. Files without required metadata remain in place. No files are deleted.",
+				"description": "Move EPUB files with metadata into author and, when available, series folders. Files without required metadata remain in place. No files are deleted.",
 				"confirm": "Organize files"
 			}
 		},

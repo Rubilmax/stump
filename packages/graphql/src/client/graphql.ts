@@ -2124,7 +2124,7 @@ export type Mutation = {
   leaveBookClub: BookClubMember;
   /** Lock or unlock a discussion (Moderator+) */
   lockDiscussion: Scalars['Boolean']['output'];
-  /** Reorganize EPUB files with accepted metadata into author and optional series folders. */
+  /** Reorganize EPUB files with metadata into author and optional series folders. */
   organizeLibraryFiles: Scalars['Boolean']['output'];
   patchEmailDevice: RegisteredEmailDevice;
   /** Pin or unpin a message (Moderator+) */

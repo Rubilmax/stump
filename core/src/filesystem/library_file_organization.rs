@@ -6,14 +6,13 @@ use std::{
 };
 
 use async_graphql::SimpleObject;
-use metadata_integrations::{ExternalMetadata, MatchCandidate};
 use models::{
-	entity::{library_config, media, metadata_fetch_record, series},
+	entity::{library_config, media, media_metadata, series},
 	shared::enums::{FileStatus, LibraryPattern},
 };
 use sea_orm::{
-	prelude::*, sea_query::Query, IntoActiveModel, JoinType, QueryOrder, QuerySelect,
-	Set, TransactionTrait,
+	prelude::*, sea_query::Query, IntoActiveModel, QueryOrder, QuerySelect, Set,
+	TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 use tokio::fs;
@@ -45,7 +44,7 @@ pub struct LibraryFileOrganizationOutput {
 	pub moved_files: u64,
 	/// The number of EPUB files already at their organized location.
 	pub already_organized_files: u64,
-	/// The number of EPUB files without usable accepted metadata.
+	/// The number of EPUB files without usable metadata.
 	pub skipped_files: u64,
 	/// The number of EPUB files whose destination already existed.
 	pub conflicted_files: u64,
@@ -201,10 +200,8 @@ impl JobLifecycle for LibraryFileOrganizationJob {
 		self.pattern = Some(config.library_pattern);
 		self.canonical_root = Some(canonical_root);
 
-		ctx.report_progress(JobProgress::msg(
-			"Finding EPUB files with accepted metadata",
-		));
-		let media_with_records = media::Entity::find()
+		ctx.report_progress(JobProgress::msg("Finding EPUB files with metadata"));
+		let media_with_metadata = media::Entity::find()
 			.filter(media::Column::DeletedAt.is_null())
 			.filter(media::Column::Status.eq(FileStatus::Ready))
 			.filter(media::Entity::epub_filter())
@@ -217,46 +214,30 @@ impl JobLifecycle for LibraryFileOrganizationJob {
 						.to_owned(),
 				),
 			)
-			.join(
-				JoinType::LeftJoin,
-				media::Relation::MetadataFetchRecord.def(),
-			)
+			.left_join(media_metadata::Entity)
 			.select_only()
 			.column(media::Column::Id)
-			.column(metadata_fetch_record::Column::AcceptedMatchCandidate)
+			.column(media_metadata::Column::Writers)
+			.column(media_metadata::Column::Series)
 			.order_by_asc(media::Column::Path)
-			.into_tuple::<(String, Option<serde_json::Value>)>()
+			.into_tuple::<(String, Option<String>, Option<String>)>()
 			.all(ctx.conn())
 			.await?;
 
 		let mut output = LibraryFileOrganizationOutput {
-			total_epub_files: media_with_records.len() as u64,
+			total_epub_files: media_with_metadata.len() as u64,
 			..Default::default()
 		};
 		let mut tasks = VecDeque::new();
 
-		for (media_id, accepted_match_candidate) in media_with_records {
-			let task = accepted_match_candidate
-				.and_then(|candidate| {
-					serde_json::from_value::<MatchCandidate>(candidate).ok()
-				})
-				.and_then(|candidate| match candidate.metadata {
-					ExternalMetadata::Media(metadata) => Some(metadata),
-					ExternalMetadata::Series(_) => None,
-				})
-				.and_then(|metadata| {
-					let writer = metadata
-						.writers
-						.as_ref()
-						.and_then(|writers| writers.first())
-						.and_then(|writer| sanitize_component(writer))?;
-					let series =
-						metadata.series_name.as_deref().and_then(sanitize_component);
-					Some(LibraryFileOrganizationTask {
-						media_id,
-						writer,
-						series,
-					})
+		for (media_id, writers, series) in media_with_metadata {
+			let task = writers
+				.as_deref()
+				.and_then(|writers| writers.split(',').find_map(sanitize_component))
+				.map(|writer| LibraryFileOrganizationTask {
+					media_id,
+					writer,
+					series: series.as_deref().and_then(sanitize_component),
 				});
 
 			if let Some(task) = task {
@@ -268,7 +249,7 @@ impl JobLifecycle for LibraryFileOrganizationJob {
 		let logs = (output.skipped_files > 0)
 			.then(|| {
 				JobExecuteLog::warn(&format!(
-					"Skipped {} EPUB files without valid accepted media metadata and a writer",
+					"Skipped {} EPUB files without valid media metadata and a writer",
 					output.skipped_files
 				))
 			})
@@ -845,7 +826,6 @@ mod tests {
 	use super::*;
 	use crate::Ctx;
 	use ::tests::{db::test_database, fake_data};
-	use metadata_integrations::ExternalMediaMetadata;
 	use models::entity::{job, log};
 	use sea_orm::{
 		ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait,
@@ -855,7 +835,6 @@ mod tests {
 	async fn create_job_test_tables(db: &DatabaseConnection) {
 		let schema = Schema::new(DbBackend::Sqlite);
 		for statement in [
-			schema.create_table_from_entity(metadata_fetch_record::Entity),
 			schema.create_table_from_entity(job::Entity),
 			schema.create_table_from_entity(log::Entity),
 		] {
@@ -863,21 +842,6 @@ mod tests {
 				.await
 				.unwrap();
 		}
-	}
-
-	fn accepted_candidate() -> serde_json::Value {
-		serde_json::to_value(MatchCandidate {
-			provider: "test".to_string(),
-			external_id: "book".to_string(),
-			metadata: ExternalMetadata::Media(ExternalMediaMetadata {
-				writers: Some(vec!["Writer".to_string()]),
-				series_name: Some("Series".to_string()),
-				..Default::default()
-			}),
-			confidence: 1.0,
-			confidence_factors: vec![],
-		})
-		.unwrap()
 	}
 
 	async fn insert_book(
@@ -899,9 +863,12 @@ mod tests {
 		active.path = Set(path.to_string_lossy().into_owned());
 		active.update(db).await.unwrap();
 
-		metadata_fetch_record::ActiveModel {
+		media_metadata::ActiveModel {
 			media_id: Set(Some(id.to_string())),
-			accepted_match_candidate: Set(Some(accepted_candidate())),
+			writers: Set(Some(
+				"Writer, Coauthor One, Coauthor Two, Coauthor Three".to_string(),
+			)),
+			series: Set(Some("Series".to_string())),
 			..Default::default()
 		}
 		.insert(db)
@@ -997,7 +964,8 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn runs_the_organization_lifecycle_without_overwriting_conflicts() {
+	async fn organizes_applied_metadata_with_multiple_writers_without_overwriting_conflicts(
+	) {
 		let db = test_database().await;
 		create_job_test_tables(&db).await;
 		let temp = tempfile::tempdir().unwrap();
