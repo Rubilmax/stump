@@ -136,6 +136,7 @@ mod tests {
 		reading_session::Model {
 			id: 1,
 			session_date: NaiveDate::from_ymd_opt(2026, 5, 17).unwrap(),
+			epubcfi: None,
 			start_locator: None,
 			end_locator: None,
 			start_page: None,

@@ -1,6 +1,7 @@
 import { useFileExplorerContext } from './context'
 import FileExplorerNavigation from './FileExplorerNavigation'
 import LayoutButtons from './LayoutButtons'
+import OrganizeLibraryFiles from './OrganizeLibraryFiles'
 import { UploadModal } from './upload'
 
 export const HEADER_HEIGHT = 40
@@ -16,6 +17,7 @@ export default function FileExplorerHeader() {
 
 			<div className="gap-3 flex shrink-0 items-center">
 				<LayoutButtons />
+				<OrganizeLibraryFiles />
 				{uploadConfig?.enabled && <UploadModal />}
 			</div>
 		</header>

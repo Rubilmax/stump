@@ -335,6 +335,7 @@ type Bookmark {
 	id: String!
 	previewContent: String
 	locator: ReadiumLocator
+	epubcfi: String @deprecated(reason: "use locator")
 	page: Int
 	mediaId: String!
 	userId: String!
@@ -410,7 +411,7 @@ type ConfidenceFactor {
 "An event that is emitted by the core and consumed by a client"
 union CoreEvent = JobStarted | JobUpdate | JobOutput | DiscoveredMissingLibrary | CreatedMedia | CreatedManySeries | CreatedOrUpdatedManyMedia
 
-union CoreJobOutput = LibraryScanOutput | SeriesScanOutput | ThumbnailGenerationOutput | PlaceholderGenerationOutput | MetadataFetchJobOutput | AnalyzeMediaOutput
+union CoreJobOutput = LibraryScanOutput | SeriesScanOutput | LibraryFileOrganizationOutput | ThumbnailGenerationOutput | PlaceholderGenerationOutput | MetadataFetchJobOutput | AnalyzeMediaOutput
 
 input CreateAnnotationInput {
 	mediaId: String!
@@ -1111,6 +1112,22 @@ input LibraryConfigInput {
 	defaultReadingMode: ReadingMode!
 	defaultReadingImageScaleFit: ReadingImageScaleFit!
 	ignoreRules: [String!]
+}
+
+"Summary counters for a library-file organization job."
+type LibraryFileOrganizationOutput {
+	"The number of ready EPUB files considered for organization."
+	totalEpubFiles: Int!
+	"The number of EPUB files moved to their organized location."
+	movedFiles: Int!
+	"The number of EPUB files already at their organized location."
+	alreadyOrganizedFiles: Int!
+	"The number of EPUB files without usable accepted metadata."
+	skippedFiles: Int!
+	"The number of EPUB files whose destination already existed."
+	conflictedFiles: Int!
+	"The number of EPUB files that could not be organized."
+	failedFiles: Int!
 }
 
 input LibraryFilterInput {
@@ -1966,6 +1983,11 @@ type Mutation {
 	"Bulk-set locked metadata fields for all media metadata in a library"
 	setLibraryMediaLockedFields(libraryId: ID!, lockedFields: [MetadataField!]!): Int!
 	"""
+	Enqueue a job to reorganize EPUB files with accepted metadata into author and optional
+	series folders. A true response means the job was queued, not that it completed.
+	"""
+	organizeLibraryFiles(id: ID!): Boolean!
+	"""
 	Enqueue a scan job for a library. This will index the filesystem from the library's root path
 	and update the database accordingly.
 	"""
@@ -2606,6 +2628,7 @@ type ReadingSession {
 	id: Int!
 	"the \"logical\" date of this session, based on user prefs and start time"
 	sessionDate: NaiveDate!
+	epubcfi: String @deprecated(reason: "use startLocator and endLocator")
 	startLocator: ReadiumLocator
 	endLocator: ReadiumLocator
 	startPage: Int

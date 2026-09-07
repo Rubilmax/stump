@@ -1,4 +1,4 @@
-import { constructLegacySearchURL, constructSearchURL } from '../opdsUtils'
+import { constructLegacySearchURL, constructSearchURL, createLatestOnlyQueue } from '../opdsUtils'
 
 describe('constructSearchURL', () => {
 	it('should return URL unchanged when no template section exists', () => {
@@ -78,5 +78,42 @@ describe('constructLegacySearchURL', () => {
 	it('should replace multiple placeholders if present', () => {
 		const url = '/opds/v1.2/search?q={searchTerms}&author={author}'
 		expect(constructLegacySearchURL(url, 'test')).toBe('/opds/v1.2/search?q=test&author=test')
+	})
+})
+
+describe('createLatestOnlyQueue', () => {
+	it('replaces pending values while a send is in flight', async () => {
+		let releaseFirst: () => void = () => undefined
+		const firstSend = new Promise<void>((resolve) => {
+			releaseFirst = resolve
+		})
+		const send = vi.fn(async (value: number) => {
+			if (value === 1) await firstSend
+		})
+		const queue = createLatestOnlyQueue(send)
+
+		const drained = queue.push(1)
+		void queue.push(2)
+		void queue.push(3)
+		releaseFirst()
+		await drained
+
+		expect(send.mock.calls).toEqual([[1], [3]])
+	})
+
+	it('can continue after the sender handles a failure', async () => {
+		let releaseFirst: () => void = () => undefined
+		const firstSend = new Promise<void>((_, reject) => {
+			releaseFirst = () => reject(new Error('offline'))
+		})
+		const send = vi.fn((value: number) => (value === 1 ? firstSend : Promise.resolve()))
+		const queue = createLatestOnlyQueue((value: number) => send(value).catch(() => undefined))
+
+		const drained = queue.push(1)
+		void queue.push(2)
+		releaseFirst()
+		await drained
+
+		expect(send.mock.calls).toEqual([[1], [2]])
 	})
 })

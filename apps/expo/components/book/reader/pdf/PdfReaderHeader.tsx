@@ -13,7 +13,7 @@ import { PagedActionMenu } from '../shared/paged-action-menu/PagedActionMenu'
 import { usePdfReaderContext } from './context'
 
 export function PdfReaderHeader() {
-	const { serverId, timer } = usePdfReaderContext()
+	const { resetTimer, serverId } = usePdfReaderContext()
 
 	const book = usePdfStore((state) => state.book)
 	const { secondaryStyle } = useReaderAnimations()
@@ -30,7 +30,7 @@ export function PdfReaderHeader() {
 			<View className="flex-row items-center justify-between">
 				<HeaderButton onPress={() => router.back()} ios={{ variant: 'glass' }} />
 
-				{book && <PagedActionMenu book={book} serverId={serverId} onResetTimer={timer.reset} />}
+				{book && <PagedActionMenu book={book} serverId={serverId} onResetTimer={resetTimer} />}
 			</View>
 
 			<Heading

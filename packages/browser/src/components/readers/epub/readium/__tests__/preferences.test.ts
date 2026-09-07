@@ -90,5 +90,13 @@ describe('bookPreferencesToEpubPreferences', () => {
 		const preferences = bookPreferencesToEpubPreferences({ isDarkVariant: true })
 		expect(preferences.backgroundColor).toBe('#161719')
 		expect(preferences.textColor).toBe('#E8EDF4')
+		expect(preferences.linkColor).toBe('#4299E1')
+	})
+
+	it('applies the shared light EPUB palette by default', () => {
+		const preferences = bookPreferencesToEpubPreferences({})
+		expect(preferences.backgroundColor).toBe('#FFFFFF')
+		expect(preferences.textColor).toBe('#000000')
+		expect(preferences.linkColor).toBe('#005A9C')
 	})
 })

@@ -119,7 +119,7 @@ function SyncConflictPageContent({
 
 	const { t } = useTranslate()
 	const { sdk } = useSDK()
-	const { data, isLoading } = useDetachedGraphQL(
+	const { data, error, isFetching, isLoading, refetch } = useDetachedGraphQL(
 		sdk,
 		conflictViewQuery,
 		['conflictView', record.downloaded_files.id, branchedSessionId],
@@ -207,7 +207,26 @@ function SyncConflictPageContent({
 
 	const disableButtons = isAcceptingLocal || isPending
 
-	if (isLoading) return null
+	if (!isWithinLoadingRange || isLoading) return null
+
+	if (error || !data) {
+		return (
+			<View className="px-4 pt-1 pb-2 gap-3 flex-1 justify-center">
+				<Alert icon={AlertCircle} variant="destructive">
+					<Alert.Title>{t('syncConflicts.pullError')}</Alert.Title>
+				</Alert>
+
+				<Button
+					variant="outline"
+					roundness="full"
+					disabled={isFetching}
+					onPress={() => void refetch()}
+				>
+					<Text>{t('common.refresh')}</Text>
+				</Button>
+			</View>
+		)
+	}
 
 	return (
 		<View className="px-4 pt-1 pb-2 flex-1" style={{ gap: 0 }}>

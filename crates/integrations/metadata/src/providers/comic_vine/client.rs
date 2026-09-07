@@ -19,7 +19,7 @@ use crate::{
 use super::{
 	types::{
 		ComicVineIssuesFilter, ComicVinePrefix, ComicVineResponse, IssueDetail,
-		IssueResult, VolumeDetail, VolumeResult,
+		VolumeDetail, VolumeResult,
 	},
 	utils::filter_credits_by_role,
 };
@@ -28,6 +28,8 @@ use super::{
 /// Honestly that is quite low. I chose 1 req/sec to be a bit more cautious, but
 /// that will easily exceed the hourly limit for even small libraries
 const COMIC_VINE_DEFAULT_RATE_LIMIT: u32 = 1;
+const ISSUE_FIELD_LIST: &str =
+	"id,name,description,issue_number,volume,cover_date,image,person_credits,character_credits";
 
 pub struct ComicVineClient {
 	client: ClientWithMiddleware,
@@ -129,16 +131,16 @@ impl ComicVineClient {
 		&self,
 		query: &str,
 		limit: u32,
-	) -> Result<Vec<IssueResult>, MetadataProviderError> {
+	) -> Result<Vec<IssueDetail>, MetadataProviderError> {
 		let limit_str = limit.to_string();
 		let params = vec![
 			("query", query),
 			("resources", "issue"),
-			("field_list", "id,name,description,issue_number,volume,cover_date,image,person_credits,character_credits"),
+			("field_list", ISSUE_FIELD_LIST),
 			("limit", limit_str.as_str()),
 		];
 
-		self.get::<Vec<IssueResult>>("/search/", &params).await
+		self.get::<Vec<IssueDetail>>("/search/", &params).await
 	}
 
 	/// queries the `/issues/` endpoint with filters, which is more precise than search when you know
@@ -148,15 +150,15 @@ impl ComicVineClient {
 		&self,
 		filter: &str,
 		limit: u32,
-	) -> Result<Vec<IssueResult>, MetadataProviderError> {
+	) -> Result<Vec<IssueDetail>, MetadataProviderError> {
 		let limit_str = limit.to_string();
 		let params = vec![
-			("field_list", "id,name,description,issue_number,volume,cover_date,image,person_credits,character_credits"),
+			("field_list", ISSUE_FIELD_LIST),
 			("limit", limit_str.as_str()),
 			("filter", filter),
 		];
 
-		self.get::<Vec<IssueResult>>("/issues/", &params).await
+		self.get::<Vec<IssueDetail>>("/issues/", &params).await
 	}
 
 	async fn fetch_volume(
@@ -175,10 +177,7 @@ impl ComicVineClient {
 	}
 
 	async fn fetch_issue(&self, id: &str) -> Result<IssueDetail, MetadataProviderError> {
-		let params = [(
-			"field_list",
-			"id,name,description,issue_number,volume,cover_date,image,person_credits,character_credits",
-		)];
+		let params = [("field_list", ISSUE_FIELD_LIST)];
 		self.get::<IssueDetail>(
 			&format!("/issue/{}-{}/", u32::from(ComicVinePrefix::Issue), id),
 			&params,
@@ -221,6 +220,61 @@ impl ComicVineClient {
 				);
 				None
 			},
+		}
+	}
+
+	fn issue_to_media_metadata(&self, issue: IssueDetail) -> ExternalMediaMetadata {
+		let external_id = issue.id.clone();
+		let cover_url = issue.image.and_then(|img| img.super_url);
+		let number = issue
+			.issue_number
+			.as_deref()
+			.and_then(|number| number.parse::<f32>().ok());
+		let (year, month, day) = issue
+			.cover_date
+			.as_deref()
+			.map(parse_date_parts)
+			.unwrap_or((None, None, None));
+		let credits = issue.person_credits.unwrap_or_default();
+
+		ExternalMediaMetadata {
+			provider: self.id().to_string(),
+			external_id: external_id.clone(),
+			title: issue.name,
+			summary: issue.description,
+			number,
+			series_name: issue.volume.as_ref().and_then(|volume| volume.name.clone()),
+			series_external_id: issue.volume.as_ref().map(|volume| volume.id.clone()),
+			year,
+			month,
+			day,
+			writers: filled_array_or_none(filter_credits_by_role(
+				&credits,
+				&["writer", "plotter", "scripter"],
+			)),
+			artists: filled_array_or_none(filter_credits_by_role(
+				&credits,
+				&["penciler", "penciller", "breakdowns", "inker", "finishes"],
+			)),
+			colorists: filled_array_or_none(filter_credits_by_role(
+				&credits,
+				&["colorist", "colourist", "colorer", "colourer"],
+			)),
+			letterers: filled_array_or_none(filter_credits_by_role(
+				&credits,
+				&["letterer"],
+			)),
+			cover_artists: filled_array_or_none(filter_credits_by_role(
+				&credits,
+				&["cover", "coverartist", "cover artist"],
+			)),
+			cover_url,
+			provider_url: Some(format!(
+				"https://comicvine.gamespot.com/issue/{}-{}/",
+				u32::from(ComicVinePrefix::Issue),
+				external_id
+			)),
+			..Default::default()
 		}
 	}
 }
@@ -343,30 +397,21 @@ impl MetadataProvider for ComicVineClient {
 
 		let requested = results.len();
 
-		let mut candidates = Vec::with_capacity(results.len());
-		for result in results {
-			let external_id = result.id.to_string();
-			match self.fetch_media_metadata(&external_id).await {
-				Ok(metadata) => {
-					tracing::trace!(external_id, "Fetched issue metadata successfully");
-					candidates.push(MatchCandidate {
-						external_id,
-						metadata: ExternalMetadata::Media(metadata),
-						provider: self.id().to_string(),
-						confidence: 0.0,
-						confidence_factors: Vec::new(),
-					});
-				},
-				Err(e) => {
-					// TODO: persisted log?
-					tracing::error!(
-						external_id,
-						error = ?e,
-						"Failed to fetch issue metadata for search result"
-					);
-				},
-			}
-		}
+		let candidates = results
+			.into_iter()
+			.map(|issue| {
+				let external_id = issue.id.clone();
+				MatchCandidate {
+					external_id,
+					metadata: ExternalMetadata::Media(
+						self.issue_to_media_metadata(issue),
+					),
+					provider: self.id().to_string(),
+					confidence: 0.0,
+					confidence_factors: Vec::new(),
+				}
+			})
+			.collect();
 
 		Ok(SearchOutcome {
 			candidates: self.score_search(query, candidates),
@@ -405,62 +450,7 @@ impl MetadataProvider for ComicVineClient {
 		external_id: &str,
 	) -> Result<ExternalMediaMetadata, MetadataProviderError> {
 		let issue = self.fetch_issue(external_id).await?;
-
-		let cover_url = issue.image.and_then(|img| img.super_url);
-
-		let number = issue
-			.issue_number
-			.as_deref()
-			.and_then(|n| n.parse::<f32>().ok());
-
-		let (year, month, day) = issue
-			.cover_date
-			.as_deref()
-			.map(parse_date_parts)
-			.unwrap_or((None, None, None));
-
-		let credits = issue.person_credits.unwrap_or_default();
-		let writers =
-			filter_credits_by_role(&credits, &["writer", "plotter", "scripter"]);
-		let artists = filter_credits_by_role(
-			&credits,
-			&["penciler", "penciller", "breakdowns", "inker", "finishes"],
-		);
-		let colorists = filter_credits_by_role(
-			&credits,
-			&["colorist", "colourist", "colorer", "colourer"],
-		);
-		let letterers = filter_credits_by_role(&credits, &["letterer"]);
-		let cover_artists =
-			filter_credits_by_role(&credits, &["cover", "coverartist", "cover artist"]);
-
-		let series_name = issue.volume.as_ref().and_then(|v| v.name.clone());
-		let series_external_id = issue.volume.as_ref().map(|v| v.id.to_string());
-
-		Ok(ExternalMediaMetadata {
-			provider: self.id().to_string(),
-			external_id: issue.id.to_string(),
-			title: issue.name,
-			summary: issue.description,
-			number,
-			series_name,
-			series_external_id,
-			year,
-			month,
-			day,
-			writers: filled_array_or_none(writers),
-			artists: filled_array_or_none(artists),
-			colorists: filled_array_or_none(colorists),
-			letterers: filled_array_or_none(letterers),
-			cover_artists: filled_array_or_none(cover_artists),
-			cover_url,
-			provider_url: Some(format!(
-				"https://comicvine.gamespot.com/issue/{}-{}/",
-				u32::from(ComicVinePrefix::Issue),
-				external_id
-			)),
-			..Default::default()
-		})
+		Ok(self.issue_to_media_metadata(issue))
 	}
 
 	#[tracing::instrument(skip(self))]
@@ -505,6 +495,43 @@ mod tests {
 		let api_key =
 			std::env::var("COMIC_VINE_API_KEY").expect("COMIC_VINE_API_KEY not set");
 		ComicVineClient::new(api_key, None)
+	}
+
+	#[test]
+	fn converts_issue_search_results_without_a_detail_request() {
+		let issue: IssueDetail = serde_json::from_value(serde_json::json!({
+			"id": 123,
+			"name": "Issue title",
+			"description": "Summary",
+			"issue_number": "7",
+			"cover_date": "2026-09-07",
+			"volume": { "id": 456, "name": "Series title" },
+			"image": { "super_url": "https://example.com/cover.jpg" },
+			"person_credits": [
+				{ "name": "Writer", "role": "writer" },
+				{ "name": "Artist", "role": "penciler" }
+			]
+		}))
+		.expect("valid issue");
+
+		let metadata = ComicVineClient::new("test-key".to_string(), Some(1))
+			.issue_to_media_metadata(issue);
+
+		assert_eq!(metadata.external_id, "123");
+		assert_eq!(metadata.title.as_deref(), Some("Issue title"));
+		assert_eq!(metadata.number, Some(7.0));
+		assert_eq!(metadata.series_external_id.as_deref(), Some("456"));
+		assert_eq!(metadata.series_name.as_deref(), Some("Series title"));
+		assert_eq!(
+			(metadata.year, metadata.month, metadata.day),
+			(Some(2026), Some(9), Some(7))
+		);
+		assert_eq!(metadata.writers, Some(vec!["Writer".to_string()]));
+		assert_eq!(metadata.artists, Some(vec!["Artist".to_string()]));
+		assert_eq!(
+			metadata.provider_url.as_deref(),
+			Some("https://comicvine.gamespot.com/issue/4000-123/")
+		);
 	}
 
 	#[ignore = "Requires COMIC_VINE_API_KEY env var"]

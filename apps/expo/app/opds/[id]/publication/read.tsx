@@ -7,6 +7,7 @@ import * as Application from 'expo-application'
 import { useKeepAwake } from 'expo-keep-awake'
 import * as NavigationBar from 'expo-navigation-bar'
 import { useFocusEffect } from 'expo-router'
+import debounce from 'lodash/debounce'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Platform } from 'react-native'
 
@@ -16,6 +17,7 @@ import { ImageReaderBookRef } from '~/components/book/reader/image/context'
 import { hashFromURL, useResolveURL } from '~/components/opds/utils'
 import { db, readProgress } from '~/db'
 import { useReadingTimer } from '~/lib/hooks'
+import { createLatestOnlyQueue } from '~/lib/opdsUtils'
 import { useReaderStore } from '~/stores'
 import { useBookPreferences } from '~/stores/reader'
 
@@ -36,7 +38,6 @@ export default function Screen() {
 		url,
 		progression,
 		progressionURL,
-		refetchProgression,
 	} = usePublicationContext()
 	const { sdk } = useSDK()
 	const {
@@ -113,6 +114,7 @@ export default function Screen() {
 
 	const queryClient = useQueryClient()
 	const lastPageRef = useRef<number | null>(null)
+	type ProgressionUpdate = { url: string; input: OPDSProgressionInput }
 
 	const { mutate: resetElapsedSeconds } = useMutation({
 		retry: (attempts) => attempts < 3,
@@ -138,41 +140,49 @@ export default function Screen() {
 		},
 	})
 
-	const { mutate: updateProgression } = useMutation({
+	const { mutateAsync: updateProgression } = useMutation({
 		retry: (attempts) => attempts < 3,
 		onError: (error) => {
 			console.error('Failed to update OPDS progression:', error)
 		},
-		mutationFn: async ({
-			url,
-			input,
-			bookId,
-			serverId,
-		}: {
-			url: string
-			input: OPDSProgressionInput
-			bookId: string
-			serverId: string
-		}) => {
-			sdk.opds.updateProgression(url, input)
+		mutationFn: ({ url, input }: ProgressionUpdate) => sdk.opds.updateProgression(url, input),
+	})
+	const progressionQueue = useMemo(
+		() =>
+			createLatestOnlyQueue((next: ProgressionUpdate) =>
+				updateProgression(next).catch(() => undefined),
+			),
+		[updateProgression],
+	)
+	const queueProgression = useMemo(
+		() =>
+			debounce((next: ProgressionUpdate) => {
+				void progressionQueue.push(next)
+			}, 500),
+		[progressionQueue],
+	)
 
-			const totalSeconds = timer.getTotalSeconds()
+	const { mutate: persistProgression } = useMutation({
+		scope: { id: `opds-local-progression-${serverId}-${id}` },
+		retry: (attempts) => attempts < 3,
+		onError: (error) => {
+			console.error('Failed to persist OPDS progression:', error)
+		},
+		mutationFn: async ({
+			elapsedSeconds,
+			page,
+			lastModified,
+		}: {
+			elapsedSeconds: number
+			page: number
+			lastModified: Date
+		}) => {
 			await db
 				.insert(readProgress)
-				.values({
-					bookId: bookId,
-					serverId: serverId,
-					elapsedSeconds: totalSeconds,
-					page: input.locator.locations?.position,
-					lastModified: new Date(),
-				})
+				.values({ bookId: id, serverId, elapsedSeconds, page, lastModified })
 				.onConflictDoUpdate({
 					target: readProgress.bookId,
-					set: {
-						elapsedSeconds: totalSeconds,
-						page: input.locator.locations?.position,
-						lastModified: new Date(),
-					},
+					set: { elapsedSeconds, page, lastModified },
 				})
 		},
 	})
@@ -210,9 +220,12 @@ export default function Screen() {
 				},
 			}
 
-			updateProgression({ url: progressionURL, input, bookId: id, serverId })
+			const elapsedSeconds = timer.getTotalSeconds()
+			const lastModified = new Date()
+			persistProgression({ elapsedSeconds, page, lastModified })
+			queueProgression({ url: progressionURL, input })
 		},
-		[progressionURL, deviceId, readingOrder, updateProgression, timer, id, serverId],
+		[progressionURL, deviceId, readingOrder, timer, persistProgression, queueProgression],
 	)
 
 	const resetTimer = useCallback(() => {
@@ -223,13 +236,22 @@ export default function Screen() {
 	useFocusEffect(
 		useCallback(() => {
 			return () => {
-				if (progressionURL) {
-					queryClient.invalidateQueries({
-						queryKey: [sdk.opds.keys.progression, progressionURL],
-					})
-				}
+				queueProgression.flush()
+				void progressionQueue.drain().then(() => {
+					if (progressionURL) {
+						void queryClient.invalidateQueries({
+							queryKey: [sdk.opds.keys.progression, progressionURL],
+						})
+					}
+				})
 			}
-		}, [progressionURL, queryClient, sdk.opds.keys.progression]),
+		}, [
+			progressionQueue,
+			progressionURL,
+			queryClient,
+			queueProgression,
+			sdk.opds.keys.progression,
+		]),
 	)
 
 	useEffect(() => {
@@ -253,18 +275,12 @@ export default function Screen() {
 		[sdk],
 	)
 
-	useEffect(
-		() => {
-			NavigationBar.setVisibilityAsync('hidden')
-			return () => {
-				refetchProgression()
-				NavigationBar.setVisibilityAsync('visible')
-			}
-		},
-		// eslint-disable-next-line react-compiler/react-compiler
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[],
-	)
+	useEffect(() => {
+		NavigationBar.setVisibilityAsync('hidden')
+		return () => {
+			NavigationBar.setVisibilityAsync('visible')
+		}
+	}, [])
 
 	const getPageURL = useResolveURL()
 

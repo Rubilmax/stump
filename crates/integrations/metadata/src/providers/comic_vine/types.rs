@@ -83,16 +83,8 @@ pub struct VolumeRef {
 	pub name: Option<String>,
 }
 
-// note: these two result types are minimal and will be used for consequent detail fetch
-
 #[derive(Debug, Deserialize)]
 pub struct VolumeResult {
-	#[serde(deserialize_with = "string_or_number")]
-	pub id: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct IssueResult {
 	#[serde(deserialize_with = "string_or_number")]
 	pub id: String,
 }

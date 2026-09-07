@@ -571,6 +571,18 @@
 		}
 	},
 	"fileExplorer": {
+		"organizeLibrary": {
+			"label": "Organize library files",
+			"rootOnly": "Return to the library root to organize files",
+			"pending": "Library organization is being queued",
+			"queued": "Library organization queued",
+			"error": "Failed to organize library files",
+			"confirmation": {
+				"title": "Organize library files?",
+				"description": "Move EPUB files with accepted metadata into author and, when available, series folders. Files without required metadata remain in place. No files are deleted.",
+				"confirm": "Organize files"
+			}
+		},
 		"uploadModal": {
 			"title": {
 				"books": "Upload books",

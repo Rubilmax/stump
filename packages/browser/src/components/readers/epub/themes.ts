@@ -27,9 +27,37 @@ const createEpubTheme = (
 	},
 })
 
-export const lightVariantText = createEpubTheme('#000000', '#FFFFFF', '#4A4A4A', '#005A9C')
+export const EPUB_THEME_COLORS = {
+	light: {
+		foreground: '#000000',
+		background: '#FFFFFF',
+		mutedForeground: '#4A4A4A',
+		linkForeground: '#005A9C',
+	},
+	dark: {
+		foreground: '#E8EDF4',
+		background: '#161719',
+		mutedForeground: '#A8ACB0',
+		linkForeground: '#4299E1',
+	},
+} as const
 
-export const darkVariantText = createEpubTheme('#E8EDF4', '#161719', '#A8ACB0', '#4299E1')
+const light = EPUB_THEME_COLORS.light
+const dark = EPUB_THEME_COLORS.dark
+
+export const lightVariantText = createEpubTheme(
+	light.foreground,
+	light.background,
+	light.mutedForeground,
+	light.linkForeground,
+)
+
+export const darkVariantText = createEpubTheme(
+	dark.foreground,
+	dark.background,
+	dark.mutedForeground,
+	dark.linkForeground,
+)
 
 export const toFamilyName = (font: SupportedFont) => {
 	switch (font) {

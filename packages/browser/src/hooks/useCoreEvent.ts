@@ -54,6 +54,14 @@ const subscription = graphql(`
 						createdMedia
 						updatedMedia
 					}
+					... on LibraryFileOrganizationOutput {
+						totalEpubFiles
+						movedFiles
+						alreadyOrganizedFiles
+						skippedFiles
+						conflictedFiles
+						failedFiles
+					}
 				}
 			}
 		}
@@ -187,6 +195,7 @@ const handleJobOutput = async (
 		)
 		.with({ __typename: 'SeriesScanOutput' }, () => affectedBooks)
 		.otherwise(() => 0)
+	const organizedLibraryFiles = output.__typename === 'LibraryFileOrganizationOutput'
 
 	const keys = [
 		sdk.cacheKeys.scanHistory,
@@ -194,6 +203,32 @@ const handleJobOutput = async (
 		'missingEntities', // TODO: Put behind key?
 		...(affectedBooks > 0 ? [sdk.cacheKeys.recentlyAddedMedia, sdk.cacheKeys.media] : []),
 		...(affectedSeries > 0 ? [sdk.cacheKeys.recentlyAddedSeries, sdk.cacheKeys.series] : []),
+		...(organizedLibraryFiles
+			? [
+					'listDirectory',
+					'booksAfterCursor',
+					'booksSearch',
+					'librarySeriesAlphabet',
+					'recentlyAddedSeries2',
+					'seriesBooksAlphabet',
+					sdk.cacheKeys.media,
+					sdk.cacheKeys.mediaById,
+					sdk.cacheKeys.libraryBooks,
+					sdk.cacheKeys.libraryById,
+					sdk.cacheKeys.libraryOverview,
+					sdk.cacheKeys.bookOverview,
+					sdk.cacheKeys.bookOverviewHeader,
+					sdk.cacheKeys.bookReader,
+					sdk.cacheKeys.recentlyAddedSeries,
+					sdk.cacheKeys.series,
+					sdk.cacheKeys.seriesById,
+					sdk.cacheKeys.seriesBooks,
+					sdk.cacheKeys.seriesLinks,
+					sdk.cacheKeys.librarySeries,
+					sdk.cacheKeys.smartListItems,
+					sdk.cacheKeys.smartListMeta,
+				]
+			: []),
 	] as string[]
 
 	await client.invalidateQueries({

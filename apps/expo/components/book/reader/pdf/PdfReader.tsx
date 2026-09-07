@@ -5,7 +5,7 @@ import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { FullScreenLoader } from '~/components/ui'
-import { useDownload } from '~/lib/hooks'
+import { Timer, useDownload } from '~/lib/hooks'
 import {
 	intoPDFReadiumLocator,
 	PDFBookLoadedEvent,
@@ -18,7 +18,7 @@ import {
 import { useVolumeListener } from '~/modules/volumeListener'
 import { useReaderStore } from '~/stores'
 import { usePdfStore } from '~/stores/pdf'
-import { Timer, useBookPreferences } from '~/stores/reader'
+import { useBookPreferences } from '~/stores/reader'
 
 import { ReaderBookRef } from '../image/context'
 import { ControlsBackdrop } from '../shared'
@@ -48,6 +48,7 @@ type Props = {
 	 * The active book's timer
 	 */
 	timer: Timer
+	resetTimer: () => void
 } & OfflineCompatibleReader
 
 // TODO(expo-pdf): Long term, consider just using a library like https://github.com/wonday/react-native-pdf

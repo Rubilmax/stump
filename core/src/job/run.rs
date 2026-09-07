@@ -8,6 +8,7 @@ use crate::{
 	event::JobStarted,
 	filesystem::{
 		image::{PlaceholderGenerationJob, ThumbnailGenerationJob},
+		library_file_organization::LibraryFileOrganizationJob,
 		media::analysis::AnalyzeMediaJob,
 		metadata::MetadataFetchJob,
 		scanner::{LibraryScanJob, SeriesScanJob},
@@ -104,6 +105,9 @@ pub async fn dispatch_job(
 	};
 
 	let result = match job {
+		StumpJob::LibraryFileOrganization { id, path } => {
+			run_job(&job_ctx, &mut LibraryFileOrganizationJob::new(id, path)).await
+		},
 		StumpJob::LibraryScan { id, path, options } => {
 			run_job(&job_ctx, &mut LibraryScanJob::new(id, path, options)).await
 		},

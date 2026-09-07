@@ -7,6 +7,7 @@ mod directory_listing;
 pub(crate) mod error;
 mod hash;
 pub mod image;
+pub mod library_file_organization;
 pub mod media;
 pub mod metadata;
 pub mod scanner;

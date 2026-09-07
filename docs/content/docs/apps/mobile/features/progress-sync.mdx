@@ -37,13 +37,9 @@ To ensure that the local device has the most up-to-date progression, the app wil
 <Step>
     ### Resolve progression conflicts
 
-The app will adhere to a somewhat naive last-write-wins approach to resolving progression conflicts. If the server has a more recent progression than the local device, the server's progression will be used. If the local device has a more recent progression than the server, the local device's progression will be used.
+When local and server reading histories diverge, the app marks the book as conflicted instead of choosing a branch automatically. Open the sync-conflicts sheet to keep the local progress, keep the server progress, or preserve both branches.
 
 The app tracks any books which a pull failed, and will ignore those books in the subsequent push step.
-
-    <Callout type="warn">
-    This will be improved in the future so that the mobile app does not auto-resolve all conflicts and allows you to choose which progression branch to keep
-    </Callout>
 
 </Step>
 
@@ -68,10 +64,8 @@ The solution would be to prompt for login credentials when attempting to sync wi
 
 ### Conflict Resolution
 
-As mentioned in the [How it Works](#how-it-works) section, the app currently uses a naive last-write-wins approach to resolving progression conflicts. This will be improved in the future so that the mobile app does not auto-resolve all conflicts and allows you to choose which progression branch to keep.
+Conflicted books require an explicit choice in the sync-conflicts sheet. You can keep local progress, keep server progress, or preserve both branches.
 
 ### Web-and-Mobile Sync
 
-The web app does not currently support Readium locators, and as such may not be able to properly sync progression for all formats with the mobile app. This will be addressed soon, a contributor has already submitted a PR to add Readium locator support to the web app.
-
-This issue does not affect any image-based formats (e.g., CBZ, CBR, PDF) since they do not use Readium locators for progression tracking.
+The web and mobile EPUB readers both store Readium locators, allowing EPUB progression to sync between them. Image-based formats such as CBZ, CBR, and PDF continue to sync by page.

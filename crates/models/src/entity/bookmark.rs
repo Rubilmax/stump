@@ -15,6 +15,9 @@ pub struct Model {
 	pub preview_content: Option<String>,
 	#[sea_orm(column_type = "Json", nullable)]
 	pub locator: Option<ReadiumLocator>,
+	#[graphql(deprecation = "use locator")]
+	#[sea_orm(column_type = "Text", nullable)]
+	pub epubcfi: Option<String>,
 	pub page: Option<i32>,
 	#[sea_orm(column_type = "Text")]
 	pub media_id: String,

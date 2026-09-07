@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+	path::PathBuf,
+	sync::{Arc, LazyLock},
+};
 
 use axum::{
 	extract::{Path, Query, State},
@@ -19,6 +22,7 @@ use stump_core::filesystem::media::{
 	search_epub, EpubProcessor, EpubSearchOptions, ReadiumManifestGenerator,
 	EPUB_SEARCH_DEFAULT_LIMIT,
 };
+use tokio::sync::Semaphore;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -27,6 +31,33 @@ use crate::{
 	middleware::{auth::auth_middleware, host::HostDetails, HostExtractor},
 	utils::http::BufferResponse,
 };
+
+const EPUB_BLOCKING_TASK_LIMIT: usize = 2;
+static EPUB_BLOCKING_TASKS: LazyLock<Arc<Semaphore>> =
+	LazyLock::new(|| Arc::new(Semaphore::new(EPUB_BLOCKING_TASK_LIMIT)));
+
+async fn run_epub_blocking<T, E, F>(semaphore: Arc<Semaphore>, job: F) -> APIResult<T>
+where
+	T: Send + 'static,
+	E: Into<APIError> + Send + 'static,
+	F: FnOnce() -> Result<T, E> + Send + 'static,
+{
+	let permit = semaphore.acquire_owned().await.map_err(|error| {
+		tracing::error!(?error, "EPUB worker semaphore closed");
+		APIError::InternalServerError("EPUB processing unavailable".to_string())
+	})?;
+	let result = tokio::task::spawn_blocking(move || {
+		let _permit = permit;
+		job()
+	})
+	.await
+	.map_err(|error| {
+		tracing::error!(?error, "EPUB worker task failed");
+		APIError::InternalServerError("EPUB processing failed".to_string())
+	})?;
+
+	result.map_err(Into::into)
+}
 
 /// EPUB package streaming routes.
 ///
@@ -109,8 +140,11 @@ async fn get_epub_manifest(
 	let ebook = find_ebook_for_user(ctx.conn.as_ref(), &user, &id).await?;
 
 	let base_url = epub_service_base_url(&host_details, &id);
-	let generator = ReadiumManifestGenerator::new(&ebook.path, base_url);
-	let manifest = generator.generate_manifest()?;
+	let path = ebook.path;
+	let manifest = run_epub_blocking(EPUB_BLOCKING_TASKS.clone(), move || {
+		ReadiumManifestGenerator::new(path, base_url).generate_manifest()
+	})
+	.await?;
 
 	Ok(WebPubManifestResponse(manifest))
 }
@@ -128,8 +162,11 @@ async fn get_epub_positions(
 	let ebook = find_ebook_for_user(ctx.conn.as_ref(), &user, &id).await?;
 
 	let base_url = epub_service_base_url(&host_details, &id);
-	let generator = ReadiumManifestGenerator::new(&ebook.path, base_url);
-	let positions = generator.generate_positions()?;
+	let path = ebook.path;
+	let positions = run_epub_blocking(EPUB_BLOCKING_TASKS.clone(), move || {
+		ReadiumManifestGenerator::new(path, base_url).generate_positions()
+	})
+	.await?;
 
 	Ok(WebPubPositionsResponse(positions))
 }
@@ -178,11 +215,10 @@ async fn get_epub_search(
 	// Dropping the request future cancels the token so the blocking scan can stop.
 	let _guard = cancel.drop_guard();
 
-	let response = tokio::task::spawn_blocking(move || {
+	let response = run_epub_blocking(EPUB_BLOCKING_TASKS.clone(), move || {
 		search_epub(&path, &base_url, options, &cancel_for_task)
 	})
-	.await
-	.map_err(|e| APIError::InternalServerError(e.to_string()))??;
+	.await?;
 
 	Ok(Json(response))
 }
@@ -220,4 +256,42 @@ async fn get_epub_resource(
 	}
 
 	Ok(EpubProcessor::get_resource_by_path(ebook.path.as_str(), "", path_buf)?.into())
+}
+
+#[cfg(test)]
+mod tests {
+	use std::{sync::mpsc, time::Duration};
+
+	use tokio::sync::oneshot;
+
+	use super::*;
+
+	#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+	async fn blocking_job_keeps_its_permit_after_the_waiter_is_cancelled() {
+		let semaphore = Arc::new(Semaphore::new(1));
+		let caller_thread = std::thread::current().id();
+		let (started_tx, started_rx) = oneshot::channel();
+		let (release_tx, release_rx) = mpsc::channel();
+
+		let task = tokio::spawn(run_epub_blocking(semaphore.clone(), move || {
+			let _ = started_tx.send(std::thread::current().id());
+			release_rx.recv().expect("release blocking job");
+			Ok::<_, APIError>(())
+		}));
+		let worker_thread = started_rx.await.expect("blocking job started");
+		assert_ne!(worker_thread, caller_thread);
+
+		task.abort();
+		assert!(task.await.expect_err("waiter was cancelled").is_cancelled());
+		assert_eq!(semaphore.available_permits(), 0);
+
+		release_tx.send(()).expect("release signal");
+		tokio::time::timeout(Duration::from_secs(1), async {
+			while semaphore.available_permits() == 0 {
+				tokio::task::yield_now().await;
+			}
+		})
+		.await
+		.expect("blocking job released its permit");
+	}
 }

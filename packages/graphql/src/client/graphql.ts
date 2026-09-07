@@ -388,6 +388,8 @@ export enum BookClubSuggestionStatus {
 export type Bookmark = {
   __typename?: 'Bookmark';
   createdAt: Scalars['DateTime']['output'];
+  /** @deprecated use locator */
+  epubcfi?: Maybe<Scalars['String']['output']>;
   id: Scalars['String']['output'];
   locator?: Maybe<ReadiumLocator>;
   mediaId: Scalars['String']['output'];
@@ -466,7 +468,7 @@ export type ConfidenceFactor = {
 /** An event that is emitted by the core and consumed by a client */
 export type CoreEvent = CreatedManySeries | CreatedMedia | CreatedOrUpdatedManyMedia | DiscoveredMissingLibrary | JobOutput | JobStarted | JobUpdate;
 
-export type CoreJobOutput = AnalyzeMediaOutput | LibraryScanOutput | MetadataFetchJobOutput | PlaceholderGenerationOutput | SeriesScanOutput | ThumbnailGenerationOutput;
+export type CoreJobOutput = AnalyzeMediaOutput | LibraryFileOrganizationOutput | LibraryScanOutput | MetadataFetchJobOutput | PlaceholderGenerationOutput | SeriesScanOutput | ThumbnailGenerationOutput;
 
 export type CreateAnnotationInput = {
   annotationText?: InputMaybe<Scalars['String']['input']>;
@@ -1208,6 +1210,16 @@ export type LibraryConfigInput = {
   skipBookOverview: Scalars['Boolean']['input'];
   thumbnailConfig?: InputMaybe<ImageProcessorOptionsInput>;
   watch: Scalars['Boolean']['input'];
+};
+
+export type LibraryFileOrganizationOutput = {
+  __typename?: 'LibraryFileOrganizationOutput';
+  alreadyOrganizedFiles: Scalars['Int']['output'];
+  conflictedFiles: Scalars['Int']['output'];
+  failedFiles: Scalars['Int']['output'];
+  movedFiles: Scalars['Int']['output'];
+  skippedFiles: Scalars['Int']['output'];
+  totalEpubFiles: Scalars['Int']['output'];
 };
 
 export type LibraryFilterInput = {
@@ -2112,6 +2124,8 @@ export type Mutation = {
   leaveBookClub: BookClubMember;
   /** Lock or unlock a discussion (Moderator+) */
   lockDiscussion: Scalars['Boolean']['output'];
+  /** Reorganize EPUB files with accepted metadata into author and optional series folders. */
+  organizeLibraryFiles: Scalars['Boolean']['output'];
   patchEmailDevice: RegisteredEmailDevice;
   /** Pin or unpin a message (Moderator+) */
   pinMessage: Scalars['Boolean']['output'];
@@ -2661,6 +2675,11 @@ export type MutationLeaveBookClubArgs = {
 export type MutationLockDiscussionArgs = {
   discussionId: Scalars['ID']['input'];
   locked: Scalars['Boolean']['input'];
+};
+
+
+export type MutationOrganizeLibraryFilesArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -3776,6 +3795,8 @@ export type ReadingSession = {
   endLocator?: Maybe<ReadiumLocator>;
   endPage?: Maybe<Scalars['Int']['output']>;
   endPercentage?: Maybe<Scalars['Decimal']['output']>;
+  /** @deprecated use startLocator and endLocator */
+  epubcfi?: Maybe<Scalars['String']['output']>;
   id: Scalars['Int']['output'];
   koreaderProgress?: Maybe<Scalars['String']['output']>;
   mediaId: Scalars['String']['output'];
@@ -5715,6 +5736,13 @@ export type MediaAtPathQueryVariables = Exact<{
 
 export type MediaAtPathQuery = { __typename?: 'Query', mediaByPath?: { __typename?: 'Media', id: string, resolvedName: string, thumbnail: { __typename?: 'ImageRef', url: string } } | null };
 
+export type OrganizeLibraryFilesMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type OrganizeLibraryFilesMutation = { __typename?: 'Mutation', organizeLibraryFiles: boolean };
+
 export type UploadLibraryBooksMutationVariables = Exact<{
   input: UploadBooksInput;
 }>;
@@ -5987,7 +6015,7 @@ export type SeriesEditorSetLockedFieldsMutation = { __typename?: 'Mutation', set
 export type UseCoreEventSubscriptionVariables = Exact<{ [key: string]: never; }>;
 
 
-export type UseCoreEventSubscription = { __typename?: 'Subscription', readEvents: { __typename: 'CreatedManySeries', count: number, libraryId: string } | { __typename: 'CreatedMedia', id: string, seriesId: string } | { __typename: 'CreatedOrUpdatedManyMedia', count: number, seriesId: string } | { __typename: 'DiscoveredMissingLibrary', id: string } | { __typename: 'JobOutput', id: string, output: { __typename: 'AnalyzeMediaOutput' } | { __typename: 'LibraryScanOutput', createdMedia: number, createdSeries: number, updatedMedia: number, updatedSeries: number } | { __typename: 'MetadataFetchJobOutput' } | { __typename: 'PlaceholderGenerationOutput' } | { __typename: 'SeriesScanOutput', createdMedia: number, updatedMedia: number } | { __typename: 'ThumbnailGenerationOutput' } } | { __typename: 'JobStarted', id: string } | { __typename: 'JobUpdate', id: string, status?: JobStatus | null, message?: string | null, completedTasks?: number | null, remainingTasks?: number | null, completedSubtasks?: number | null, totalSubtasks?: number | null, subtitle?: string | null } };
+export type UseCoreEventSubscription = { __typename?: 'Subscription', readEvents: { __typename: 'CreatedManySeries', count: number, libraryId: string } | { __typename: 'CreatedMedia', id: string, seriesId: string } | { __typename: 'CreatedOrUpdatedManyMedia', count: number, seriesId: string } | { __typename: 'DiscoveredMissingLibrary', id: string } | { __typename: 'JobOutput', id: string, output: { __typename: 'AnalyzeMediaOutput' } | { __typename: 'LibraryFileOrganizationOutput', totalEpubFiles: number, movedFiles: number, alreadyOrganizedFiles: number, skippedFiles: number, conflictedFiles: number, failedFiles: number } | { __typename: 'LibraryScanOutput', createdMedia: number, createdSeries: number, updatedMedia: number, updatedSeries: number } | { __typename: 'MetadataFetchJobOutput' } | { __typename: 'PlaceholderGenerationOutput' } | { __typename: 'SeriesScanOutput', createdMedia: number, updatedMedia: number } | { __typename: 'ThumbnailGenerationOutput' } } | { __typename: 'JobStarted', id: string } | { __typename: 'JobUpdate', id: string, status?: JobStatus | null, message?: string | null, completedTasks?: number | null, remainingTasks?: number | null, completedSubtasks?: number | null, totalSubtasks?: number | null, subtitle?: string | null } };
 
 export type UsePreferencesMutationVariables = Exact<{
   input: UpdateUserPreferencesInput;
@@ -6420,7 +6448,7 @@ export type ScanRecordInspectorJobsQueryVariables = Exact<{
 }>;
 
 
-export type ScanRecordInspectorJobsQuery = { __typename?: 'Query', jobById?: { __typename?: 'Job', id: string, outputData?: { __typename: 'AnalyzeMediaOutput' } | { __typename: 'LibraryScanOutput', totalFiles: number, totalDirectories: number, ignoredFiles: number, skippedFiles: number, ignoredDirectories: number, createdMedia: number, updatedMedia: number, createdSeries: number, updatedSeries: number } | { __typename: 'MetadataFetchJobOutput' } | { __typename: 'PlaceholderGenerationOutput' } | { __typename: 'SeriesScanOutput' } | { __typename: 'ThumbnailGenerationOutput' } | null, logs?: Array<{ __typename?: 'Log', id: number }> } | null };
+export type ScanRecordInspectorJobsQuery = { __typename?: 'Query', jobById?: { __typename?: 'Job', id: string, outputData?: { __typename: 'AnalyzeMediaOutput' } | { __typename: 'LibraryFileOrganizationOutput' } | { __typename: 'LibraryScanOutput', totalFiles: number, totalDirectories: number, ignoredFiles: number, skippedFiles: number, ignoredDirectories: number, createdMedia: number, updatedMedia: number, createdSeries: number, updatedSeries: number } | { __typename: 'MetadataFetchJobOutput' } | { __typename: 'PlaceholderGenerationOutput' } | { __typename: 'SeriesScanOutput' } | { __typename: 'ThumbnailGenerationOutput' } | null, logs?: Array<{ __typename?: 'Log', id: number }> } | null };
 
 export type DeleteLibraryThumbnailsMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -6804,6 +6832,8 @@ export type JobActionMenuDeleteLogsMutation = { __typename?: 'Mutation', deleteJ
 
 type JobDataInspector_AnalyzeMediaOutput_Fragment = { __typename: 'AnalyzeMediaOutput' } & { ' $fragmentName'?: 'JobDataInspector_AnalyzeMediaOutput_Fragment' };
 
+type JobDataInspector_LibraryFileOrganizationOutput_Fragment = { __typename: 'LibraryFileOrganizationOutput', totalEpubFiles: number, movedFiles: number, alreadyOrganizedFiles: number, skippedFiles: number, conflictedFiles: number, failedFiles: number } & { ' $fragmentName'?: 'JobDataInspector_LibraryFileOrganizationOutput_Fragment' };
+
 type JobDataInspector_LibraryScanOutput_Fragment = { __typename: 'LibraryScanOutput', totalFiles: number, totalDirectories: number, ignoredFiles: number, skippedFiles: number, ignoredDirectories: number, createdMedia: number, updatedMedia: number, createdSeries: number, updatedSeries: number } & { ' $fragmentName'?: 'JobDataInspector_LibraryScanOutput_Fragment' };
 
 type JobDataInspector_MetadataFetchJobOutput_Fragment = { __typename: 'MetadataFetchJobOutput' } & { ' $fragmentName'?: 'JobDataInspector_MetadataFetchJobOutput_Fragment' };
@@ -6814,7 +6844,7 @@ type JobDataInspector_SeriesScanOutput_Fragment = { __typename: 'SeriesScanOutpu
 
 type JobDataInspector_ThumbnailGenerationOutput_Fragment = { __typename: 'ThumbnailGenerationOutput', visitedFiles: number, skippedFiles: number, generatedThumbnails: number, removedThumbnails: number } & { ' $fragmentName'?: 'JobDataInspector_ThumbnailGenerationOutput_Fragment' };
 
-export type JobDataInspectorFragment = JobDataInspector_AnalyzeMediaOutput_Fragment | JobDataInspector_LibraryScanOutput_Fragment | JobDataInspector_MetadataFetchJobOutput_Fragment | JobDataInspector_PlaceholderGenerationOutput_Fragment | JobDataInspector_SeriesScanOutput_Fragment | JobDataInspector_ThumbnailGenerationOutput_Fragment;
+export type JobDataInspectorFragment = JobDataInspector_AnalyzeMediaOutput_Fragment | JobDataInspector_LibraryFileOrganizationOutput_Fragment | JobDataInspector_LibraryScanOutput_Fragment | JobDataInspector_MetadataFetchJobOutput_Fragment | JobDataInspector_PlaceholderGenerationOutput_Fragment | JobDataInspector_SeriesScanOutput_Fragment | JobDataInspector_ThumbnailGenerationOutput_Fragment;
 
 export type ScheduledJobsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -6839,6 +6869,9 @@ export type JobTableQueryVariables = Exact<{
 export type JobTableQuery = { __typename?: 'Query', jobs: { __typename?: 'PaginatedJobResponse', nodes: Array<{ __typename?: 'Job', id: string, name: string, description?: string | null, status: JobStatus, createdAt: any, completedAt?: any | null, msElapsed: number, logCount: number, outputData?: (
         { __typename?: 'AnalyzeMediaOutput' }
         & { ' $fragmentRefs'?: { 'JobDataInspector_AnalyzeMediaOutput_Fragment': JobDataInspector_AnalyzeMediaOutput_Fragment } }
+      ) | (
+        { __typename?: 'LibraryFileOrganizationOutput' }
+        & { ' $fragmentRefs'?: { 'JobDataInspector_LibraryFileOrganizationOutput_Fragment': JobDataInspector_LibraryFileOrganizationOutput_Fragment } }
       ) | (
         { __typename?: 'LibraryScanOutput' }
         & { ' $fragmentRefs'?: { 'JobDataInspector_LibraryScanOutput_Fragment': JobDataInspector_LibraryScanOutput_Fragment } }
@@ -8047,6 +8080,14 @@ export const JobDataInspectorFragmentDoc = new TypedDocumentString(`
     skippedFiles
     createdMedia
     updatedMedia
+  }
+  ... on LibraryFileOrganizationOutput {
+    totalEpubFiles
+    movedFiles
+    alreadyOrganizedFiles
+    skippedFiles
+    conflictedFiles
+    failedFiles
   }
   ... on ThumbnailGenerationOutput {
     visitedFiles
@@ -10523,6 +10564,11 @@ export const MediaAtPathDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<MediaAtPathQuery, MediaAtPathQueryVariables>;
+export const OrganizeLibraryFilesDocument = new TypedDocumentString(`
+    mutation OrganizeLibraryFiles($id: ID!) {
+  organizeLibraryFiles(id: $id)
+}
+    `) as unknown as TypedDocumentString<OrganizeLibraryFilesMutation, OrganizeLibraryFilesMutationVariables>;
 export const UploadLibraryBooksDocument = new TypedDocumentString(`
     mutation UploadLibraryBooks($input: UploadBooksInput!) {
   uploadBooks(input: $input)
@@ -11505,6 +11551,14 @@ export const UseCoreEventDocument = new TypedDocumentString(`
         ... on SeriesScanOutput {
           createdMedia
           updatedMedia
+        }
+        ... on LibraryFileOrganizationOutput {
+          totalEpubFiles
+          movedFiles
+          alreadyOrganizedFiles
+          skippedFiles
+          conflictedFiles
+          failedFiles
         }
       }
     }
@@ -13378,6 +13432,14 @@ export const JobTableDocument = new TypedDocumentString(`
     skippedFiles
     createdMedia
     updatedMedia
+  }
+  ... on LibraryFileOrganizationOutput {
+    totalEpubFiles
+    movedFiles
+    alreadyOrganizedFiles
+    skippedFiles
+    conflictedFiles
+    failedFiles
   }
   ... on ThumbnailGenerationOutput {
     visitedFiles

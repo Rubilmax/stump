@@ -1,11 +1,12 @@
 import { getThumbnailTintColor } from '@stump/client'
 import { formatBytes } from '@stump/client'
-import { cn, ProgressBar, Text } from '@stump/components'
-import { FragmentType, graphql, useFragment } from '@stump/graphql'
+import { cn, IconButton, ProgressBar, Text, ToolTip } from '@stump/components'
+import { FragmentType, graphql, useFragment, UserPermission } from '@stump/graphql'
+import { RefreshCw } from 'lucide-react'
 import pluralize from 'pluralize'
 import { memo, useCallback, useMemo } from 'react'
 
-import { Link } from '@/context'
+import { Link, useAppContext } from '@/context'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useTheme } from '@/hooks/useTheme'
 import { usePaths } from '@/paths'
@@ -14,6 +15,7 @@ import { isEbookExtension, isEbookReadProgress, readProgressPercent } from '@/ut
 
 import { ThumbnailImage } from '../thumbnail/ThumbnailImage'
 import { usePrefetchBook } from './useBookOverview'
+import useKoboSync from './useKoboSync'
 
 export const BookCardFragment = graphql(`
 	fragment BookCard on Media {
@@ -71,6 +73,8 @@ const BookCard = memo(function BookCard({
 }: Props) {
 	const data = useFragment(BookCardFragment, fragment)
 	const paths = usePaths()
+	const { checkPermission } = useAppContext()
+	const { mutate: setKoboSync, isPending: isUpdatingKoboSync } = useKoboSync()
 
 	const {
 		preferences: { thumbnailRatio },
@@ -128,6 +132,11 @@ const BookCard = memo(function BookCard({
 	}, [readingLink, data.id, data.extension, onSelect, data.readProgress, data.libraryConfig, paths])
 
 	const isMissing = data.status === 'MISSING'
+	const canToggleKoboSync =
+		data.extension.toLowerCase() === 'epub' && checkPermission(UserPermission.AccessKoboSync)
+	const koboSyncLabel = data.isSelectedForKoboSync
+		? `Remove ${data.resolvedName} from Kobo sync`
+		: `Sync ${data.resolvedName} to Kobo`
 	const isEbookProgress = isEbookReadProgress(data.readProgress, data.extension)
 	const pagesLeft = data.pages - (data.readProgress?.page || 0)
 	const progressPercent = progress ?? 0
@@ -186,62 +195,100 @@ const BookCard = memo(function BookCard({
 	}, [thumbnailAverageColor, isDarkVariant, getThemeColor])
 
 	return (
-		// @ts-expect-error: It's okay
-		<Comp
-			{...props}
-			onClick={handleClick}
-			onMouseEnter={prefetch}
-			className={cn(
-				'group gap-1 relative flex flex-col',
-				'p-1 rounded-lg border border-transparent transition-colors duration-100',
-				'focus-visible:outline-none',
-				fullWidth ? 'w-full' : 'w-40 sm:w-[10.666rem] md:w-48 shrink-0',
-			)}
+		<div
+			className={cn('relative', fullWidth ? 'w-full' : 'w-40 sm:w-[10.666rem] md:w-48 shrink-0')}
 		>
-			<div
+			{/* @ts-expect-error: It's okay */}
+			<Comp
+				{...props}
+				onClick={handleClick}
+				onMouseEnter={prefetch}
 				className={cn(
-					'-inset-0.5 absolute -z-10 rounded-thumbnail',
-					'scale-95 opacity-0 duration-100',
-					'group-hover:scale-100 group-hover:opacity-100',
-					'group-focus-visible:scale-100 group-focus-visible:opacity-100',
+					'group gap-1 relative flex w-full flex-col',
+					'p-1 rounded-lg border border-transparent transition-colors duration-100',
+					'focus-visible:outline-none',
 				)}
-				style={{ backgroundColor: backgroundColor }}
-			/>
-
-			<div className="relative w-full" style={{ aspectRatio: thumbnailRatio }}>
-				<ThumbnailImage
-					src={data.thumbnail.url}
-					alt={data.resolvedName}
-					size={{ width: '100%', height: '100%' }}
-					placeholderData={placeholderData}
-					lazy
-					borderAndShadowStyle={{
-						shadowColor: 'rgba(0, 0, 0, 0.15)',
-						shadowRadius: 2,
-					}}
+			>
+				<div
+					className={cn(
+						'-inset-0.5 absolute -z-10 rounded-thumbnail',
+						'scale-95 opacity-0 duration-100',
+						'group-hover:scale-100 group-hover:opacity-100',
+						'group-focus-visible:scale-100 group-focus-visible:opacity-100',
+					)}
+					style={{ backgroundColor: backgroundColor }}
 				/>
-			</div>
 
-			{progressPercent > 0 && (
-				<ProgressBar
-					value={progressPercent}
-					max={100}
-					variant="primary-dark"
-					size="sm"
-					className="-mt-0.5"
-				/>
+				<div className="relative w-full" style={{ aspectRatio: thumbnailRatio }}>
+					<ThumbnailImage
+						src={data.thumbnail.url}
+						alt={data.resolvedName}
+						size={{ width: '100%', height: '100%' }}
+						placeholderData={placeholderData}
+						lazy
+						borderAndShadowStyle={{
+							shadowColor: 'rgba(0, 0, 0, 0.15)',
+							shadowRadius: 2,
+						}}
+					/>
+				</div>
+
+				{progressPercent > 0 && (
+					<ProgressBar
+						value={progressPercent}
+						max={100}
+						variant="primary-dark"
+						size="sm"
+						className="-mt-0.5"
+					/>
+				)}
+
+				<div className="gap-0.5 px-0.5 flex h-[52px] flex-col">
+					<Text
+						size="sm"
+						className="min-w-0 font-medium leading-tight line-clamp-2 whitespace-normal"
+					>
+						{data.resolvedName}
+					</Text>
+					{renderSubtitle()}
+				</div>
+			</Comp>
+
+			{canToggleKoboSync && (
+				<ToolTip content={koboSyncLabel} side="top">
+					<IconButton
+						variant={data.isSelectedForKoboSync ? 'default' : 'secondary'}
+						rounded="full"
+						size="sm"
+						className="right-2 top-2 shadow-md absolute z-20"
+						aria-label={koboSyncLabel}
+						aria-pressed={data.isSelectedForKoboSync}
+						aria-busy={isUpdatingKoboSync}
+						title={koboSyncLabel}
+						disabled={isUpdatingKoboSync}
+						onClick={(event) => {
+							event.preventDefault()
+							event.stopPropagation()
+							setKoboSync({
+								mediaIds: [data.id],
+								isSelected: !data.isSelectedForKoboSync,
+							})
+						}}
+					>
+						<span className="size-4 relative" aria-hidden="true">
+							<RefreshCw
+								className={cn('inset-0 size-4 absolute', {
+									'motion-safe:animate-spin': isUpdatingKoboSync,
+								})}
+							/>
+							<span className="inset-0 font-bold absolute flex items-center justify-center text-[9px] leading-none">
+								k
+							</span>
+						</span>
+					</IconButton>
+				</ToolTip>
 			)}
-
-			<div className="gap-0.5 px-0.5 flex h-[52px] flex-col">
-				<Text
-					size="sm"
-					className="min-w-0 font-medium leading-tight line-clamp-2 whitespace-normal"
-				>
-					{data.resolvedName}
-				</Text>
-				{renderSubtitle()}
-			</div>
-		</Comp>
+		</div>
 	)
 })
 

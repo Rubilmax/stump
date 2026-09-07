@@ -20,7 +20,10 @@ export default function useKoboSync() {
 					queryKey.includes(sdk.cacheKeys.bookOverview) ||
 					queryKey.includes(sdk.cacheKeys.libraryBooks) ||
 					queryKey.includes(sdk.cacheKeys.seriesBooks) ||
-					queryKey.includes('booksSearch'),
+					queryKey.includes(sdk.cacheKeys.smartListItems) ||
+					queryKey.includes('booksSearch') ||
+					queryKey.includes('booksAfterCursor') ||
+					queryKey.includes('bookOverlay'),
 			}),
 		onError: (error) => {
 			console.error(error)

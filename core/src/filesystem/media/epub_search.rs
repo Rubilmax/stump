@@ -347,7 +347,13 @@ pub fn search_epub(
 			0
 		};
 
-		let matches = find_literal_matches_ci(&plain, &needle, resume);
+		let remaining = options.limit - results.len();
+		let matches = find_literal_matches_ci(
+			&plain,
+			&needle,
+			resume,
+			remaining.min(EPUB_SEARCH_MAX_MATCHES_PER_SPINE) + 1,
+		);
 
 		for (emitted_in_spine, (match_start, match_end)) in
 			matches.into_iter().enumerate()
@@ -355,15 +361,15 @@ pub fn search_epub(
 			if cancel.is_cancelled() {
 				return Err(EpubSearchError::Cancelled);
 			}
-			if emitted_in_spine >= EPUB_SEARCH_MAX_MATCHES_PER_SPINE {
-				break;
-			}
 			if results.len() >= options.limit {
 				next_cursor = Some(EpubSearchCursor {
 					spine_index: meta.spine_index as u32,
 					text_offset: match_start as u32,
 					query_fp: query_fp.clone(),
 				});
+				break;
+			}
+			if emitted_in_spine >= EPUB_SEARCH_MAX_MATCHES_PER_SPINE {
 				break;
 			}
 
@@ -676,78 +682,67 @@ pub(crate) fn find_literal_matches_ci(
 	haystack: &str,
 	needle_lower: &str,
 	start: usize,
+	max_matches: usize,
 ) -> Vec<(usize, usize)> {
-	if needle_lower.is_empty() || start > haystack.len() {
+	if needle_lower.is_empty()
+		|| max_matches == 0
+		|| start > haystack.len()
+		|| !haystack.is_char_boundary(start)
+	{
 		return Vec::new();
 	}
 
 	let hay_lower = haystack.to_lowercase();
-	if !haystack.is_char_boundary(start) || !hay_lower.is_char_boundary(start) {
+	let start_lower = haystack[..start]
+		.chars()
+		.flat_map(char::to_lowercase)
+		.map(char::len_utf8)
+		.sum::<usize>();
+	let mut lowered_matches = hay_lower[start_lower..]
+		.match_indices(needle_lower)
+		.take(max_matches)
+		.map(|(offset, value)| {
+			let match_start = start_lower + offset;
+			(match_start, match_start + value.len())
+		});
+	let Some(mut current_match) = lowered_matches.next() else {
 		return Vec::new();
-	}
-
-	// Map lowered-byte offsets back to original char-boundary offsets via parallel walk.
-	let original_chars: Vec<(usize, char)> = haystack.char_indices().collect();
-	let lowered_chars: Vec<char> = hay_lower.chars().collect();
-	if original_chars.len() != lowered_chars.len() {
-		// Extremely rare case-folding length change — fall back to ASCII-insensitive scan on lowered string only.
-		return find_in_lowered(&hay_lower, needle_lower, start);
-	}
-
-	let needle_chars: Vec<char> = needle_lower.chars().collect();
-	if needle_chars.is_empty() {
-		return Vec::new();
-	}
-
-	let mut start_char_idx = 0usize;
-	for (i, (byte_idx, _)) in original_chars.iter().enumerate() {
-		if *byte_idx >= start {
-			start_char_idx = i;
-			break;
-		}
-		start_char_idx = i + 1;
-	}
+	};
 
 	let mut matches = Vec::new();
-	let mut i = start_char_idx;
-	while i + needle_chars.len() <= lowered_chars.len() {
-		if lowered_chars[i..i + needle_chars.len()] == needle_chars[..] {
-			let start_byte = original_chars[i].0;
-			let end_byte = if i + needle_chars.len() < original_chars.len() {
-				original_chars[i + needle_chars.len()].0
-			} else {
-				haystack.len()
-			};
-			matches.push((start_byte, end_byte));
-			i += needle_chars.len(); // non-overlapping
-		} else {
-			i += 1;
-		}
-	}
-	matches
-}
+	let mut mapped_start = None;
+	let mut lowered_offset = 0;
+	for (original_start, ch) in haystack.char_indices() {
+		let original_end = original_start + ch.len_utf8();
+		let lowered_end =
+			lowered_offset + ch.to_lowercase().map(char::len_utf8).sum::<usize>();
 
-fn find_in_lowered(
-	hay_lower: &str,
-	needle_lower: &str,
-	start: usize,
-) -> Vec<(usize, usize)> {
-	let mut matches = Vec::new();
-	let mut from = start;
-	while from <= hay_lower.len() {
-		if let Some(rel) = hay_lower[from..].find(needle_lower) {
-			let start_idx = from + rel;
-			let end_idx = start_idx + needle_lower.len();
-			if hay_lower.is_char_boundary(start_idx)
-				&& hay_lower.is_char_boundary(end_idx)
-			{
-				matches.push((start_idx, end_idx));
+		loop {
+			if mapped_start.is_none() {
+				if current_match.0 >= lowered_end {
+					break;
+				}
+				mapped_start = Some(original_start);
 			}
-			from = end_idx;
-		} else {
-			break;
+
+			if current_match.1 > lowered_end {
+				break;
+			}
+
+			let mapped_match =
+				(mapped_start.take().unwrap_or(original_start), original_end);
+			if matches.last() != Some(&mapped_match) {
+				matches.push(mapped_match);
+			}
+			let Some(next_match) = lowered_matches.next() else {
+				return matches;
+			};
+			current_match = next_match;
 		}
+
+		lowered_offset = lowered_end;
 	}
+
 	matches
 }
 
@@ -812,11 +807,26 @@ mod tests {
 	#[test]
 	fn literal_match_is_case_insensitive_and_non_regex() {
 		let hay = "Foo bar FOO and (foo.)";
-		let matches = find_literal_matches_ci(hay, "foo", 0);
+		let matches = find_literal_matches_ci(hay, "foo", 0, usize::MAX);
 		assert_eq!(matches.len(), 3);
-		let meta = find_literal_matches_ci(hay, "(foo.)", 0);
+		let meta = find_literal_matches_ci(hay, "(foo.)", 0, usize::MAX);
 		assert_eq!(meta.len(), 1);
 		assert_eq!(&hay[meta[0].0..meta[0].1], "(foo.)");
+	}
+
+	#[test]
+	fn literal_match_is_bounded_and_preserves_unicode_offsets() {
+		let repeated = "a".repeat(1024);
+		let matches = find_literal_matches_ci(&repeated, "aa", 0, 21);
+		assert_eq!(matches.len(), 21);
+		assert_eq!(matches.last(), Some(&(40, 42)));
+
+		let unicode = "İ Foo";
+		let expanded = find_literal_matches_ci(unicode, "i", 0, 2);
+		assert_eq!(&unicode[expanded[0].0..expanded[0].1], "İ");
+		let foo_start = unicode.find("Foo").unwrap();
+		let after_expansion = find_literal_matches_ci(unicode, "foo", foo_start, 1);
+		assert_eq!(&unicode[after_expansion[0].0..after_expansion[0].1], "Foo");
 	}
 
 	#[test]

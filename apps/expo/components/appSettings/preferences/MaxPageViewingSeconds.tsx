@@ -63,12 +63,14 @@ export default function MaxPageViewingSeconds() {
 	return (
 		<>
 			<AppSettingsRow
+				accessible={false}
 				icon={Hourglass}
 				iconBackgroundColor={SETTINGS_COLORS.interactive}
 				title={t(getKey('label'))}
 			>
 				<View className="gap-2 squircle dark:border-white/5 dark:bg-white/5 border-black/5 bg-black/5 h-8 flex flex-row items-center rounded-full border">
 					<TextInput
+						accessibilityLabel={t(getKey('label'))}
 						hitSlop={50}
 						keyboardType="number-pad"
 						selectionColor={colors.fill.brand.DEFAULT}

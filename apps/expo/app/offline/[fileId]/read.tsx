@@ -408,6 +408,7 @@ function Reader({ record, bookmarks, annotations }: ReaderProps) {
 				offlineUri={`${booksDirectory(downloadedFile.serverId)}/${downloadedFile.filename}`}
 				initialPage={book.readProgress?.page || 1}
 				timer={timer}
+				resetTimer={resetTimer}
 				serverId={downloadedFile.serverId}
 			/>
 		)

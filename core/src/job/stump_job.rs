@@ -17,6 +17,10 @@ use models::shared::image_processor_options::ImageProcessorOptions;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum StumpJob {
+	LibraryFileOrganization {
+		id: String,
+		path: String,
+	},
 	LibraryScan {
 		id: String,
 		path: String,
@@ -46,6 +50,7 @@ impl StumpJob {
 	/// Returns the human-readable name of the job
 	pub fn name(&self) -> &'static str {
 		match self {
+			StumpJob::LibraryFileOrganization { .. } => "library_file_organization",
 			StumpJob::LibraryScan { .. } => "library_scan",
 			StumpJob::SeriesScan { .. } => "series_scan",
 			StumpJob::ThumbnailGeneration { .. } => "thumbnail_generation",
@@ -58,6 +63,7 @@ impl StumpJob {
 	/// Returns a description for the job
 	pub fn description(&self) -> Option<String> {
 		match self {
+			StumpJob::LibraryFileOrganization { path, .. } => Some(path.clone()),
 			StumpJob::LibraryScan { path, .. } => Some(path.clone()),
 			StumpJob::SeriesScan { path, .. } => Some(path.clone()),
 			StumpJob::ThumbnailGeneration { params, .. } => {
@@ -78,6 +84,10 @@ impl StumpJob {
 
 	pub fn library_scan(id: String, path: String, options: Option<ScanOptions>) -> Self {
 		StumpJob::LibraryScan { id, path, options }
+	}
+
+	pub fn library_file_organization(id: String, path: String) -> Self {
+		StumpJob::LibraryFileOrganization { id, path }
 	}
 
 	pub fn series_scan(id: String, path: String, options: Option<ScanOptions>) -> Self {

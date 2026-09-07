@@ -32,3 +32,32 @@ export function constructLegacySearchURL(templatedUrl: string, query: string) {
 	const encodedQuery = encodeURIComponent(query)
 	return templatedUrl.replace(/{[^}]+}/g, encodedQuery)
 }
+
+export function createLatestOnlyQueue<T>(send: (value: T) => Promise<unknown>) {
+	let pending: { value: T } | null = null
+	let running: Promise<void> | null = null
+
+	const drain = () => {
+		if (running) return running
+		if (!pending) return Promise.resolve()
+
+		running = (async () => {
+			while (pending) {
+				const next = pending.value
+				pending = null
+				await send(next)
+			}
+		})().finally(() => {
+			running = null
+		})
+		return running
+	}
+
+	return {
+		drain,
+		push: (value: T) => {
+			pending = { value }
+			return drain()
+		},
+	}
+}

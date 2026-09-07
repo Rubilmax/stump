@@ -134,21 +134,29 @@ async fn check_for_updates() -> APIResult<Json<UpdateCheck>> {
 
 async fn health(State(ctx): State<AppState>) -> impl IntoResponse {
 	let ok_status = json!({"status": "ok"});
+	let error_status = json!({"status": "error", "message": "Dependency unavailable"});
 
 	let (db_ready, db_data) = match ctx.conn.ping().await {
 		Ok(_) => (true, ok_status.clone()),
-		Err(e) => (false, json!({"status": "error", "message": e.to_string()})),
+		Err(error) => {
+			tracing::error!(?error, "Database health check failed");
+			(false, error_status.clone())
+		},
 	};
 
-	let (spa_available, spa_data) =
-		match tokio::fs::metadata(&ctx.config.client_dir).await {
-			Ok(metadata) if metadata.is_dir() => (true, ok_status),
-			Ok(_) => (
-				false,
-				json!({"status": "error", "message": "The client directory is malformed or missing"}),
-			),
-			Err(e) => (false, json!({"status": "error", "message": e.to_string()})),
-		};
+	let (spa_available, spa_data) = match tokio::fs::metadata(&ctx.config.client_dir)
+		.await
+	{
+		Ok(metadata) if metadata.is_dir() => (true, ok_status),
+		Ok(_) => {
+			tracing::error!(path = %ctx.config.client_dir, "Client path is not a directory");
+			(false, error_status.clone())
+		},
+		Err(error) => {
+			tracing::error!(?error, path = %ctx.config.client_dir, "Client directory health check failed");
+			(false, error_status)
+		},
+	};
 
 	let status_code = if [db_ready, spa_available].iter().all(|&ready| ready) {
 		StatusCode::OK
@@ -162,11 +170,6 @@ async fn health(State(ctx): State<AppState>) -> impl IntoResponse {
 			"spa": spa_data
 		}
 	});
-
-	// ^ the above structure is pretty overkill for two dependencies, but this is how
-	// i've done it in the past (at least when i don't need background periodic checks or
-	// checks against external deps) and will make it easier to add more down the
-	// road if needed
 
 	(status_code, Json(payload))
 }

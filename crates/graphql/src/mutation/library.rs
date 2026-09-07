@@ -985,6 +985,30 @@ impl LibraryMutation {
 		Ok(result.rows_affected)
 	}
 
+	/// Enqueue a job to reorganize EPUB files with accepted metadata into author and optional
+	/// series folders. A true response means the job was queued, not that it completed.
+	#[graphql(guard = "PermissionGuard::one(UserPermission::ManageLibrary)")]
+	async fn organize_library_files(&self, ctx: &Context<'_>, id: ID) -> Result<bool> {
+		let AuthContext { user, .. } = ctx.data::<AuthContext>()?;
+		let core = ctx.data::<CoreContext>()?;
+
+		let library = library::Entity::find_for_user(user)
+			.filter(library::Column::Id.eq(id.to_string()))
+			.into_model::<library::LibraryIdentSelect>()
+			.one(core.conn.as_ref())
+			.await?
+			.ok_or("Library not found")?;
+
+		core.enqueue(StumpJob::library_file_organization(
+			library.id,
+			library.path,
+		))
+		.await?;
+		tracing::debug!("Enqueued library file organization job");
+
+		Ok(true)
+	}
+
 	/// Enqueue a scan job for a library. This will index the filesystem from the library's root path
 	/// and update the database accordingly.
 	#[graphql(guard = "PermissionGuard::one(UserPermission::ScanLibrary)")]

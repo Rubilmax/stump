@@ -677,6 +677,7 @@ export default function Screen() {
 				serverId={serverId}
 				// incognito
 				timer={timer}
+				resetTimer={resetTimer}
 			/>
 		)
 	} else if (book.extension.match(ARCHIVE_EXTENSION) || book.extension.match(PDF_EXTENSION)) {

@@ -1,7 +1,7 @@
 import type { IEpubPreferences } from '@readium/navigator'
 import { ReadingMode, SupportedFont } from '@stump/graphql'
 
-import { toFamilyName } from '../themes'
+import { EPUB_THEME_COLORS, toFamilyName } from '../themes'
 
 type ColumnCountPreference = 'auto' | 1 | 2
 
@@ -101,13 +101,13 @@ export function bookPreferencesToEpubPreferences({
 	}
 
 	if (isDarkVariant) {
-		preferences.backgroundColor = '#161719'
-		preferences.textColor = '#E8EDF4'
-		preferences.linkColor = '#4299E1'
+		preferences.backgroundColor = EPUB_THEME_COLORS.dark.background
+		preferences.textColor = EPUB_THEME_COLORS.dark.foreground
+		preferences.linkColor = EPUB_THEME_COLORS.dark.linkForeground
 	} else {
-		preferences.backgroundColor = '#ffffff'
-		preferences.textColor = '#161719'
-		preferences.linkColor = '#2563eb'
+		preferences.backgroundColor = EPUB_THEME_COLORS.light.background
+		preferences.textColor = EPUB_THEME_COLORS.light.foreground
+		preferences.linkColor = EPUB_THEME_COLORS.light.linkForeground
 	}
 
 	return preferences

@@ -5,6 +5,7 @@ use serde::{de, Deserialize, Serialize};
 
 use crate::filesystem::{
 	image::{PlaceholderGenerationOutput, ThumbnailGenerationOutput},
+	library_file_organization::LibraryFileOrganizationOutput,
 	media::analysis::AnalyzeMediaOutput,
 	metadata::MetadataFetchJobOutput,
 	scanner::{LibraryScanOutput, SeriesScanOutput},
@@ -15,6 +16,7 @@ use crate::filesystem::{
 pub enum CoreJobOutput {
 	LibraryScan(LibraryScanOutput),
 	SeriesScan(SeriesScanOutput),
+	LibraryFileOrganization(LibraryFileOrganizationOutput),
 	ThumbnailGeneration(ThumbnailGenerationOutput),
 	PlaceholderGeneration(PlaceholderGenerationOutput),
 	MetadataFetch(MetadataFetchJobOutput),
@@ -40,5 +42,55 @@ pub trait JobOutputExt: Serialize + de::DeserializeOwned + Debug {
 			},
 			Some,
 		)
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::{CoreJobOutput, LibraryFileOrganizationOutput};
+
+	#[test]
+	fn historical_scan_output_is_not_deserialized_as_organization_output() {
+		let output = serde_json::from_value(serde_json::json!({
+			"totalFiles": 1,
+			"totalDirectories": 2,
+			"ignoredFiles": 3,
+			"skippedFiles": 4,
+			"ignoredDirectories": 5,
+			"createdMedia": 6,
+			"updatedMedia": 7,
+			"createdSeries": 8,
+			"updatedSeries": 9
+		}))
+		.expect("library scan output should deserialize");
+
+		assert!(matches!(output, CoreJobOutput::LibraryScan(_)));
+	}
+
+	#[test]
+	fn organization_output_round_trips_to_its_variant() {
+		let serialized = serde_json::to_value(CoreJobOutput::LibraryFileOrganization(
+			LibraryFileOrganizationOutput {
+				total_epub_files: 1,
+				moved_files: 2,
+				already_organized_files: 3,
+				skipped_files: 4,
+				conflicted_files: 5,
+				failed_files: 6,
+			},
+		))
+		.expect("organization output should serialize");
+		let output = serde_json::from_value(serialized)
+			.expect("organization output should deserialize");
+
+		let CoreJobOutput::LibraryFileOrganization(output) = output else {
+			panic!("organization output decoded as a different job output")
+		};
+		assert_eq!(output.total_epub_files, 1);
+		assert_eq!(output.moved_files, 2);
+		assert_eq!(output.already_organized_files, 3);
+		assert_eq!(output.skipped_files, 4);
+		assert_eq!(output.conflicted_files, 5);
+		assert_eq!(output.failed_files, 6);
 	}
 }

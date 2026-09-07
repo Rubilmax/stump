@@ -34,6 +34,8 @@ mod m20260804_000000_smart_list_role_to_integer;
 mod m20260815_205755_avatar_image_metadata;
 mod m20260816_000000_drop_legacy_epubcfi;
 mod m20260825_000000_add_kobo_sync_state;
+mod m20260907_000000_fix_kobo_timestamp_types;
+mod m20260907_000000_restore_legacy_epubcfi;
 
 pub struct Migrator;
 
@@ -74,6 +76,8 @@ impl MigratorTrait for Migrator {
 			Box::new(m20260815_205755_avatar_image_metadata::Migration),
 			Box::new(m20260816_000000_drop_legacy_epubcfi::Migration),
 			Box::new(m20260825_000000_add_kobo_sync_state::Migration),
+			Box::new(m20260907_000000_restore_legacy_epubcfi::Migration),
+			Box::new(m20260907_000000_fix_kobo_timestamp_types::Migration),
 		]
 	}
 }

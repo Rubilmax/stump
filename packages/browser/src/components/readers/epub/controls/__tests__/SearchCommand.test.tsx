@@ -179,6 +179,16 @@ describe('SearchCommand', () => {
 		expect(screen.queryByText('Load more results')).not.toBeInTheDocument()
 	})
 
+	it('shows an error when the initial search fails', async () => {
+		const searchBook = vi.fn().mockRejectedValue(new Error('network error'))
+		mockControls({ searchBook })
+
+		render(<SearchCommand />)
+		search('query')
+
+		expect(await screen.findByRole('alert')).toHaveTextContent('epubReader.search.failed')
+	})
+
 	it('ignores a stale response superseded by a newer search', async () => {
 		const staleResponse = deferred<EpubSearchResponse>()
 		const freshResponse = deferred<EpubSearchResponse>()

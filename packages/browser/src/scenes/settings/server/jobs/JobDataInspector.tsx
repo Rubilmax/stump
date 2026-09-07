@@ -22,6 +22,14 @@ const fragment = graphql(`
 			createdMedia
 			updatedMedia
 		}
+		... on LibraryFileOrganizationOutput {
+			totalEpubFiles
+			movedFiles
+			alreadyOrganizedFiles
+			skippedFiles
+			conflictedFiles
+			failedFiles
+		}
 		... on ThumbnailGenerationOutput {
 			visitedFiles
 			skippedFiles

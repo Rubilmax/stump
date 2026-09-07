@@ -283,13 +283,14 @@ export default function ReadiumWebReader({ id, isIncognito, startFromBeginning }
 					? Number(ebook.media.readProgress.percentageCompleted)
 					: null
 
-				const initialLocator = isIncognito || startFromBeginning
-					? undefined
-					: resolveInitialLocator({
-							positions: opened.positions,
-							storedLocator: ebook.media?.readProgress?.locator,
-							percentageCompleted,
-						})
+				const initialLocator =
+					isIncognito || startFromBeginning
+						? undefined
+						: resolveInitialLocator({
+								positions: opened.positions,
+								storedLocator: ebook.media?.readProgress?.locator,
+								percentageCompleted,
+							})
 
 				setOpenState({ status: 'ready', opened, initialLocator })
 			} catch (error) {

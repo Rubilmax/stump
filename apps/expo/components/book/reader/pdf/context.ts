@@ -5,6 +5,7 @@ import { Timer } from '~/lib/hooks'
 export type IPdfReaderContext = {
 	serverId: string
 	timer: Timer
+	resetTimer: () => void
 }
 
 export const PdfReaderContext = createContext<IPdfReaderContext | null>(null)

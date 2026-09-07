@@ -31,10 +31,6 @@ export default function EpubReaderScene() {
 	}, [client, sdk.cacheKeys])
 
 	return (
-		<ReadiumWebReader
-			id={id}
-			isIncognito={isIncognito}
-			startFromBeginning={startFromBeginning}
-		/>
+		<ReadiumWebReader id={id} isIncognito={isIncognito} startFromBeginning={startFromBeginning} />
 	)
 }

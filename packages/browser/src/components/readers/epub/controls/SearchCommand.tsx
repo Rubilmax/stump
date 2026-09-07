@@ -198,8 +198,13 @@ export default function SearchCommand() {
 				</div>
 			)
 		}
+		if (error)
+			return (
+				<Command.Empty>
+					<span role="alert">{error}</span>
+				</Command.Empty>
+			)
 		if (!hasSearched) return null
-		if (error) return <Command.Empty>{error}</Command.Empty>
 		if (!serverResults.length)
 			return <Command.Empty>{t('epubReader.search.noResults')}</Command.Empty>
 

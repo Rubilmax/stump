@@ -12,8 +12,9 @@ export default function LibraryTypeSelect() {
 
 	return (
 		<div className="gap-2 flex flex-col">
-			<Label>{t(getKey('label'))}</Label>
+			<Label htmlFor="library-type">{t(getKey('label'))}</Label>
 			<NativeSelect
+				id="library-type"
 				options={OPTIONS.map((option) => ({
 					value: option,
 					label: t(getKey(`options.${option}`)),

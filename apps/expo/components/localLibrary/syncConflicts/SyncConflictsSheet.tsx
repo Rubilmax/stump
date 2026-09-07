@@ -18,6 +18,7 @@ import { SheetBackDetection } from '../../SheetBackDetection'
 import { Badge, Heading, Text } from '../../ui'
 import { useDownloadsState } from '../store'
 import { ConflictCarousel } from './ConflictCarousel'
+import { flushPendingServerProgress } from './flushPendingServerProgress'
 import { AcceptedProgressionData } from './types'
 
 export const SYNC_CONFLICTS_SHEET_NAME = 'syncConflictsSheet'
@@ -34,6 +35,7 @@ export function SyncConflictsSheet({ onDismiss }: Props) {
 	const insets = useSafeAreaInsets()
 
 	const [isOpen, setIsOpen] = useState(false)
+	const isOpenRef = useRef(false)
 
 	const { data: conflictingRecords, updatedAt } = useLiveQuery(
 		db
@@ -81,25 +83,38 @@ export function SyncConflictsSheet({ onDismiss }: Props) {
 		},
 	})
 
+	const refreshDownloads = useDownloadsState((state) => state.increment)
 	const serverIdsToSyncUponClose = useRef(new Set<string>())
 
-	const shouldPull = useMemo(
-		() => !oldestModifiedAt || oldestModifiedAt.getTime() < Date.now() - 5 * 60 * 1000,
-		[oldestModifiedAt],
-	)
+	const { mutate: executeCloseSync } = useMutation({
+		scope: { id: 'sync-conflicts-close' },
+		mutationFn: () =>
+			flushPendingServerProgress(
+				serverIdsToSyncUponClose.current,
+				async (serverIds) => {
+					const { pushResults } = await syncProgress({
+						forServers: serverIds,
+						suppressAlerts: true,
+					})
+					return pushResults
+				},
+				refreshDownloads,
+			),
+		retry: (attempts) => attempts < 3,
+		onError: (error) => {
+			toast.error(t('progressSync.syncFailed'), {
+				description: extractErrorMessage(error),
+			})
+		},
+	})
 
-	const refreshDownloads = useDownloadsState((state) => state.increment)
+	const shouldPull = !oldestModifiedAt || oldestModifiedAt.getTime() < Date.now() - 5 * 60 * 1000
 	useEffect(
 		() => {
 			if (isOpen && shouldPull) {
 				executePullProgress()
 			} else if (!isOpen && serverIdsToSyncUponClose.current.size > 0) {
-				syncProgress({
-					forServers: Array.from(serverIdsToSyncUponClose.current),
-					suppressAlerts: true,
-				})
-				serverIdsToSyncUponClose.current.clear()
-				refreshDownloads()
+				executeCloseSync()
 			}
 		},
 		// eslint-disable-next-line react-compiler/react-compiler
@@ -125,9 +140,10 @@ export function SyncConflictsSheet({ onDismiss }: Props) {
 				})
 				.where(eq(readProgress.bookId, bookId))
 			serverIdsToSyncUponClose.current.add(serverId)
+			if (!isOpenRef.current) executeCloseSync()
 			if (isLastConflict) onAutoClose()
 		},
-		[onAutoClose, conflictCount],
+		[onAutoClose, conflictCount, executeCloseSync],
 	)
 
 	const onApplySyncedSessionData = useCallback(
@@ -181,8 +197,12 @@ export function SyncConflictsSheet({ onDismiss }: Props) {
 					</View>
 				}
 				style={{ paddingBottom: insets.bottom + 16 }}
-				onDidPresent={() => setIsOpen(true)}
+				onDidPresent={() => {
+					isOpenRef.current = true
+					setIsOpen(true)
+				}}
 				onDidDismiss={() => {
+					isOpenRef.current = false
 					setIsOpen(false)
 					onDismiss?.()
 				}}

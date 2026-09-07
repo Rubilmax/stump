@@ -5,28 +5,18 @@ pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
-	async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-		manager
-			.alter_table(
-				Table::alter()
-					.table(Bookmarks::Table)
-					.drop_column(Bookmarks::Epubcfi)
-					.to_owned(),
-			)
-			.await?;
-		manager
-			.alter_table(
-				Table::alter()
-					.table(ReadingSessions::Table)
-					.drop_column(ReadingSessions::Epubcfi)
-					.to_owned(),
-			)
-			.await?;
-
+	async fn up(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
+		// Keep the legacy values until an EPUB-aware CFI-to-Readium backfill exists.
 		Ok(())
 	}
 
 	async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+		ensure_legacy_columns(manager).await
+	}
+}
+
+async fn ensure_legacy_columns(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+	if !manager.has_column("bookmarks", "epubcfi").await? {
 		manager
 			.alter_table(
 				Table::alter()
@@ -35,6 +25,8 @@ impl MigrationTrait for Migration {
 					.to_owned(),
 			)
 			.await?;
+	}
+	if !manager.has_column("reading_sessions", "epubcfi").await? {
 		manager
 			.alter_table(
 				Table::alter()
@@ -43,9 +35,9 @@ impl MigrationTrait for Migration {
 					.to_owned(),
 			)
 			.await?;
-
-		Ok(())
 	}
+
+	Ok(())
 }
 
 #[derive(DeriveIden)]
