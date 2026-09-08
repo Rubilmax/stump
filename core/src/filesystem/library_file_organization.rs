@@ -499,23 +499,70 @@ fn rename_without_overwrite_blocking(
 	source: &Path,
 	target: &Path,
 ) -> std::io::Result<()> {
-	let source = c_path(source)?;
-	let target = c_path(target)?;
+	let source_path = c_path(source)?;
+	let target_path = c_path(target)?;
 	let result = unsafe {
 		libc::syscall(
 			libc::SYS_renameat2,
 			libc::AT_FDCWD,
-			source.as_ptr(),
+			source_path.as_ptr(),
 			libc::AT_FDCWD,
-			target.as_ptr(),
+			target_path.as_ptr(),
 			libc::RENAME_NOREPLACE,
 		)
 	};
 	if result == 0 {
 		Ok(())
 	} else {
-		Err(std::io::Error::last_os_error())
+		handle_renameat2_error(source, target, std::io::Error::last_os_error())
 	}
+}
+
+#[cfg(target_os = "linux")]
+fn handle_renameat2_error(
+	source: &Path,
+	target: &Path,
+	error: std::io::Error,
+) -> std::io::Result<()> {
+	use std::os::unix::fs::MetadataExt;
+
+	let unsupported = matches!(
+		error.raw_os_error(),
+		Some(code)
+			if code == libc::EINVAL
+				|| code == libc::ENOSYS
+				|| code == libc::EOPNOTSUPP
+	);
+	if !unsupported {
+		return Err(error);
+	}
+
+	// mergerfs does not implement flagged renames. Reserve the destination so
+	// concurrent organizers cannot create it, then use its ordinary rename.
+	let reservation = std::fs::File::create_new(target)?;
+	let reservation_metadata = reservation.metadata()?;
+	let current_target_metadata = std::fs::symlink_metadata(target)?;
+	if current_target_metadata.dev() != reservation_metadata.dev()
+		|| current_target_metadata.ino() != reservation_metadata.ino()
+	{
+		return Err(std::io::Error::new(
+			ErrorKind::AlreadyExists,
+			format!(
+				"Destination changed while preparing move: {}",
+				target.display()
+			),
+		));
+	}
+
+	std::fs::rename(source, target).map_err(|error| {
+		std::io::Error::new(
+			error.kind(),
+			format!(
+				"{error}; empty destination reservation retained at {}",
+				target.display()
+			),
+		)
+	})
 }
 
 #[cfg(target_os = "macos")]
@@ -961,6 +1008,35 @@ mod tests {
 		rename_without_overwrite(&source, &target).await.unwrap();
 		assert!(!source.exists());
 		assert_eq!(fs::read(&target).await.unwrap(), b"source");
+	}
+
+	#[cfg(target_os = "linux")]
+	#[test]
+	fn uses_reserved_rename_when_renameat2_is_unsupported() {
+		let temp = tempfile::tempdir().unwrap();
+		let source = temp.path().join("source.epub");
+		let target = temp.path().join("target.epub");
+		std::fs::write(&source, b"source").unwrap();
+
+		handle_renameat2_error(
+			&source,
+			&target,
+			std::io::Error::from_raw_os_error(libc::EINVAL),
+		)
+		.unwrap();
+		assert!(!source.exists());
+		assert_eq!(std::fs::read(&target).unwrap(), b"source");
+
+		std::fs::write(&source, b"new source").unwrap();
+		let error = handle_renameat2_error(
+			&source,
+			&target,
+			std::io::Error::from_raw_os_error(libc::EINVAL),
+		)
+		.unwrap_err();
+		assert_eq!(error.kind(), ErrorKind::AlreadyExists);
+		assert_eq!(std::fs::read(&source).unwrap(), b"new source");
+		assert_eq!(std::fs::read(&target).unwrap(), b"source");
 	}
 
 	#[tokio::test]
