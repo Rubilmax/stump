@@ -18,9 +18,12 @@ use models::{
 };
 use sea_orm::prelude::*;
 use serde::Deserialize;
-use stump_core::filesystem::media::{
-	search_epub, EpubProcessor, EpubSearchOptions, ReadiumManifestGenerator,
-	EPUB_SEARCH_DEFAULT_LIMIT,
+use stump_core::{
+	media::processor::epub::get_resource_by_path,
+	readium::{
+		search::{search_epub, EpubSearchOptions, EPUB_SEARCH_DEFAULT_LIMIT},
+		ReadiumManifestGenerator,
+	},
 };
 use tokio::sync::Semaphore;
 use tokio_util::sync::CancellationToken;
@@ -246,8 +249,8 @@ async fn get_epub_resource(
 			let resource = PathBuf::from(file_name);
 			let root_str = if root.is_empty() { "" } else { root.as_str() };
 
-			return Ok(EpubProcessor::get_resource_by_path(
-				ebook.path.as_str(),
+			return Ok(get_resource_by_path(
+				std::path::Path::new(&ebook.path),
 				root_str,
 				resource,
 			)?
@@ -255,7 +258,7 @@ async fn get_epub_resource(
 		}
 	}
 
-	Ok(EpubProcessor::get_resource_by_path(ebook.path.as_str(), "", path_buf)?.into())
+	Ok(get_resource_by_path(std::path::Path::new(&ebook.path), "", path_buf)?.into())
 }
 
 #[cfg(test)]

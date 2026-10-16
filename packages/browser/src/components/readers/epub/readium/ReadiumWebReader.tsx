@@ -34,6 +34,7 @@ import { EpubContent, type ReaderLocator } from '../context'
 import EpubReaderContainer from '../EpubReaderContainer'
 import {
 	hrefsMatch,
+	packagePathFromHref,
 	resolveInitialLocator,
 	toolkitLocatorToInput,
 	toolkitLocatorToReaderLocator,
@@ -163,9 +164,6 @@ type LoadState =
 	| { status: 'loading' }
 	| { status: 'ready'; opened: OpenedPublication; initialLocator?: Locator }
 	| { status: 'error'; message: string }
-
-const EMPTY_POSITIONS: Locator[] = []
-const EMPTY_DOMAINS: string[] = []
 
 /**
  * Production Readium Web EPUB reader — streams via Stump RWPM.
@@ -455,12 +453,16 @@ export default function ReadiumWebReader({ id, isIncognito, startFromBeginning }
 			const context = extractSelectionContext(containerRef.current, sel.targetFrameSrc)
 
 			const readingOrderHrefs =
-				opened?.publication.manifest.readingOrder?.items.map((link) => link.href) ?? []
+				opened?.publication.manifest.readingOrder?.items.map(
+					(link) => packagePathFromHref(link.href),
+					// ^ links are absolute on web, and relative to package on mobile, so we
+					// normalize onto package-relative
+				) ?? []
 			const chapterTitleFromToc = findChapterTitle(sel.locator?.href ?? '', toc)
 			const locator = enrichSelectionLocator({
 				selectionLocator: sel.locator ?? null,
 				selectedText: sel.text,
-				positions: opened?.positions ?? EMPTY_POSITIONS,
+				positions: opened?.positions ?? [],
 				readingOrderHrefs,
 				chapterTitleFromToc,
 			})
@@ -502,9 +504,9 @@ export default function ReadiumWebReader({ id, isIncognito, startFromBeginning }
 	const { loadState, api } = useReadiumNavigator({
 		containerRef,
 		publication: opened?.publication ?? null,
-		positions: opened?.positions ?? EMPTY_POSITIONS,
+		positions: opened?.positions ?? [],
 		initialLocator,
-		allowedDomains: opened?.allowedDomains ?? EMPTY_DOMAINS,
+		allowedDomains: opened?.allowedDomains ?? [],
 		preferences,
 		onPositionChanged: handlePositionChanged,
 		onTextSelected,
@@ -513,8 +515,11 @@ export default function ReadiumWebReader({ id, isIncognito, startFromBeginning }
 	})
 
 	useEffect(() => {
-		api.applyDecorations(annotationsToDecorations(annotations), ANNOTATION_DECORATION_GROUP)
-	}, [api, annotations])
+		api.applyDecorations(
+			annotationsToDecorations(annotations, undefined, opened?.positions ?? []),
+			ANNOTATION_DECORATION_GROUP,
+		)
+	}, [api, annotations, opened])
 
 	// A navigator position change means the reader moved away from wherever the
 	// selection toolbar was anchored, so drop it rather than show a stale rect.

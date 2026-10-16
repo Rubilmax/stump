@@ -259,7 +259,7 @@ fn content_revision_from_parts(
 }
 
 fn kepub_cache_dir(config: &StumpConfig) -> PathBuf {
-	config.get_cache_dir().join("kepub")
+	config.cache_directory().join("kepub")
 }
 
 fn cache_book_key(media_id: &str) -> String {
@@ -617,6 +617,7 @@ mod tests {
 			thumbnail_path: None,
 			series_id: None,
 			deleted_at: None,
+			is_oneshot: false,
 		}
 	}
 

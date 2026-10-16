@@ -1,6 +1,10 @@
 import { useGraphQLMutation, useSDK } from '@stump/client'
-import { graphql } from '@stump/graphql'
-import { useQueryClient } from '@tanstack/react-query'
+import {
+	graphql,
+	SetMediaKoboSyncMutation,
+	SetMediaKoboSyncMutationVariables,
+} from '@stump/graphql'
+import { UseMutationResult, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 const mutation = graphql(`
@@ -9,7 +13,11 @@ const mutation = graphql(`
 	}
 `)
 
-export default function useKoboSync() {
+export default function useKoboSync(): UseMutationResult<
+	SetMediaKoboSyncMutation,
+	unknown,
+	SetMediaKoboSyncMutationVariables
+> {
 	const { sdk } = useSDK()
 	const client = useQueryClient()
 
