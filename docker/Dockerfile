@@ -61,7 +61,7 @@ COPY packages/sdk/package.json packages/sdk/
 RUN --mount=type=cache,target=/usr/local/share/.cache/yarn,id=stump-yarn \
     HUSKY=0 yarn install --frozen-lockfile --network-timeout 300000
 
-COPY tsconfig.json tsconfig.options.json ./
+COPY tsconfig.base.json ./
 COPY apps/web apps/web
 COPY apps/desktop/src apps/desktop/src
 COPY packages packages

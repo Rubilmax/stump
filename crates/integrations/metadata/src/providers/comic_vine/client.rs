@@ -3,7 +3,8 @@ use reqwest::Url;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
 use crate::{
-	client::{build_client_with_retry, RetryClientConfig},
+	ExternalMetadata, MetadataProvider, RateLimiter, SearchOutcome,
+	client::{RetryClientConfig, build_client_with_retry},
 	error::MetadataProviderError,
 	provider::ProviderCredentialVerification,
 	providers::comic_vine::utils::{
@@ -13,7 +14,6 @@ use crate::{
 		ExternalMediaMetadata, ExternalSeriesMetadata, MatchCandidate, MediaType,
 		SearchQuery,
 	},
-	ExternalMetadata, MetadataProvider, RateLimiter, SearchOutcome,
 };
 
 use super::{
@@ -28,8 +28,7 @@ use super::{
 /// Honestly that is quite low. I chose 1 req/sec to be a bit more cautious, but
 /// that will easily exceed the hourly limit for even small libraries
 const COMIC_VINE_DEFAULT_RATE_LIMIT: u32 = 1;
-const ISSUE_FIELD_LIST: &str =
-	"id,name,description,issue_number,volume,cover_date,image,person_credits,character_credits";
+const ISSUE_FIELD_LIST: &str = "id,name,description,issue_number,volume,cover_date,image,person_credits,character_credits";
 
 pub struct ComicVineClient {
 	client: ClientWithMiddleware,

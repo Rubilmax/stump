@@ -3,9 +3,7 @@ import { OPDSProgressionInput } from '@stump/sdk'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { eq } from 'drizzle-orm'
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite'
-import * as Application from 'expo-application'
 import { useKeepAwake } from 'expo-keep-awake'
-import * as NavigationBar from 'expo-navigation-bar'
 import { useFocusEffect } from 'expo-router'
 import debounce from 'lodash/debounce'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -16,8 +14,9 @@ import { ImageReaderBookRef } from '~/components/book/reader/image/context'
 import { db, readProgress } from '~/db'
 import { useReadingTimer } from '~/lib/hooks'
 import { createLatestOnlyQueue } from '~/lib/opds/search'
-import { hashFromURL, useResolveURL } from '~/lib/opds/utils'
+import { getProgressionPage, hashFromURL, useResolveURL } from '~/lib/opds/utils'
 import { useActiveServer } from '~/providers/ActiveServerProvider'
+import { useDeviceId } from '~/providers/DeviceIdProvider'
 import { useReaderStore } from '~/stores'
 import { useBookPreferences } from '~/stores/reader'
 
@@ -43,6 +42,7 @@ export default function Screen() {
 	const {
 		activeServer: { id: serverId },
 	} = useActiveServer()
+	const deviceId = useDeviceId()
 
 	const [id] = useState(() => identifier || hashFromURL(url))
 
@@ -92,25 +92,15 @@ export default function Screen() {
 	const setShowControls = useReaderStore((state) => state.setShowControls)
 
 	const currentPage = useMemo(() => {
-		const extractedPosition = progression?.locator.locations?.position
+		const extractedPosition = getProgressionPage(progression)
 		if (!extractedPosition) {
+			console.warn('Failed to extract progression page, defaulting to 1', {
+				progression,
+			})
 			return 1
 		}
 		return extractedPosition
 	}, [progression])
-
-	// TODO: Consider a store for device info? If more areas need it I guess
-	const [deviceId, setDeviceId] = useState<string | null>(null)
-	useEffect(() => {
-		async function getDeviceId() {
-			if (Platform.OS === 'ios') {
-				setDeviceId(await Application.getIosIdForVendorAsync())
-			} else {
-				setDeviceId(Application.getAndroidId())
-			}
-		}
-		getDeviceId()
-	}, [])
 
 	const queryClient = useQueryClient()
 	const lastPageRef = useRef<number | null>(null)
@@ -195,12 +185,11 @@ export default function Screen() {
 
 			timer.popDeltaSeconds()
 
-			const progression = readingOrder?.length
+			const progressionValue = readingOrder?.length
 				? Math.round((page / readingOrder.length) * 100) / 100
 				: undefined
 
 			lastPageRef.current = page
-			const currentLink = readingOrder?.[page - 1]
 			const input: OPDSProgressionInput = {
 				modified: new Date().toISOString(),
 				device: {
@@ -208,16 +197,9 @@ export default function Screen() {
 					// TODO(opds): Allow user to set device name in settings?
 					name: `Stump App - ${Platform.OS === 'ios' ? 'iOS' : 'Android'}`,
 				},
-				locator: {
-					href: currentLink?.href || `#page-${page}`,
-					type: currentLink?.type || 'image/jpeg',
-					locations: {
-						position: page,
-						// Note: progression and totalProgression are the same for image-based readers
-						progression,
-						totalProgression: progression,
-					},
-				},
+				progression: progressionValue ?? 0,
+				references: [`#page=${page}`],
+				title: `Page ${page}`,
 			}
 
 			const elapsedSeconds = timer.getTotalSeconds()
@@ -274,13 +256,6 @@ export default function Screen() {
 		}),
 		[sdk],
 	)
-
-	useEffect(() => {
-		NavigationBar.setVisibilityAsync('hidden')
-		return () => {
-			NavigationBar.setVisibilityAsync('visible')
-		}
-	}, [])
 
 	const getPageURL = useResolveURL()
 

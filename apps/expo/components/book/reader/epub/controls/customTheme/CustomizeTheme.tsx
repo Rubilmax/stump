@@ -1,9 +1,10 @@
-import { Fragment, useCallback, useEffect, useState } from 'react'
-import { Alert, Pressable, ScrollView, View } from 'react-native'
+import { Fragment, RefObject, useCallback, useEffect, useState } from 'react'
+import { Pressable, ScrollView, type ScrollViewInstance, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
 import { Input, Text } from '~/components/ui'
+import { SystemAlert } from '~/components/ui/system-alert'
 import { useTranslate } from '~/lib/hooks'
 import { useColorScheme } from '~/lib/useColorScheme'
 import { cn } from '~/lib/utils'
@@ -18,6 +19,7 @@ type Props = {
 	onCancel: () => void
 	mode?: 'edit' | 'create'
 	theme?: string
+	scrollRef?: RefObject<ScrollViewInstance | null>
 }
 
 const DEFAULT_THEMES = ['Light', 'Dark', 'Sepia']
@@ -30,8 +32,13 @@ const NEW_THEME_DEFAULTS: StoredConfig = {
 	},
 }
 
-export default function CustomizeTheme({ onCancel, mode = 'edit', theme: namedTheme }: Props) {
-	const { t } = useTranslate()
+export default function CustomizeTheme({
+	onCancel,
+	mode = 'edit',
+	theme: namedTheme,
+	scrollRef,
+}: Props) {
+	const { translate } = useTranslate()
 	const { colorScheme } = useColorScheme()
 	const insets = useSafeAreaInsets()
 
@@ -70,7 +77,6 @@ export default function CustomizeTheme({ onCancel, mode = 'edit', theme: namedTh
 			setCustomTheme(currentTheme)
 			setName(currentName)
 		},
-		// eslint-disable-next-line react-compiler/react-compiler
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[themeToEdit, mode],
 	)
@@ -117,7 +123,7 @@ export default function CustomizeTheme({ onCancel, mode = 'edit', theme: namedTh
 		const trimmedName = name.trim()
 
 		if (!trimmedName) {
-			Alert.alert('Error', 'Please enter a theme name')
+			SystemAlert.alert('Error', 'Please enter a theme name')
 			return
 		}
 
@@ -126,7 +132,7 @@ export default function CustomizeTheme({ onCancel, mode = 'edit', theme: namedTh
 			!customTheme.colors?.foreground ||
 			!customTheme.colors?.highlight
 		) {
-			Alert.alert('Error', 'Theme colors are required')
+			SystemAlert.alert('Error', 'Theme colors are required')
 			return
 		}
 
@@ -134,7 +140,7 @@ export default function CustomizeTheme({ onCancel, mode = 'edit', theme: namedTh
 
 		if (isCreateMode) {
 			if (themes[trimmedName]) {
-				Alert.alert('Error', 'A theme with this name already exists')
+				SystemAlert.alert('Error', 'A theme with this name already exists')
 				return
 			}
 			addTheme(trimmedName, customTheme)
@@ -166,6 +172,7 @@ export default function CustomizeTheme({ onCancel, mode = 'edit', theme: namedTh
 			<ThemeHeaderPreview customTheme={customTheme} onCancel={handleCancel} onSaved={handleSave} />
 
 			<ScrollView
+				ref={scrollRef}
 				contentContainerStyle={{
 					paddingHorizontal: 16,
 					paddingTop: 16,
@@ -176,31 +183,31 @@ export default function CustomizeTheme({ onCancel, mode = 'edit', theme: namedTh
 				<Input
 					value={name}
 					onChangeText={setName}
-					placeholder={t(getKey('placeholder'))}
+					placeholder={translate(getKey('placeholder'))}
 					editable={isCreateMode || !isDefaultTheme}
 				/>
 
 				<ColorPickerRow
-					label={t(getKey('background'))}
+					label={translate(getKey('background'))}
 					value={customTheme.colors?.background ?? '#FFFFFF'}
 					onChange={onChangeBackground}
 				/>
 
 				<ColorPickerRow
-					label={t(getKey('text'))}
+					label={translate(getKey('text'))}
 					value={customTheme.colors?.foreground ?? '#000000'}
 					onChange={onChangeForeground}
 				/>
 
 				<ColorPickerRow
-					label={t(getKey('highlight'))}
+					label={translate(getKey('highlight'))}
 					value={customTheme.colors?.highlight ?? '#FFEB3B'}
 					onChange={onChangeHighlight}
 				/>
 
 				<View className="bg-black/10 dark:bg-white/10 h-px" />
 
-				<Text className="text-xl">{t(getKey('premadeThemes'))}</Text>
+				<Text className="text-xl">{translate(getKey('premadeThemes'))}</Text>
 				<View className="gap-y-2 flex-row flex-wrap">
 					{PREMADE_THEMES.map((theme) => (
 						<View className="px-1 w-1/4" key={theme.name}>
@@ -294,5 +301,5 @@ const PREMADE_THEMES: PremadeTheme[] = [
 	},
 ]
 
-const LOCALE_BASE = 'epubSettings.customizeTheme'
+const LOCALE_BASE = 'shared.epubSettings.customizeTheme'
 const getKey = (key: string) => `${LOCALE_BASE}.${key}`

@@ -3,7 +3,7 @@ use models::entity::{reading_list, reading_list_item};
 use sea_orm::{
 	ActiveValue::Set,
 	TransactionTrait,
-	{prelude::*, DatabaseTransaction},
+	{DatabaseTransaction, prelude::*},
 };
 
 use crate::{
@@ -110,7 +110,7 @@ async fn create_reading_list_items(
 		.collect::<Vec<_>>();
 
 	reading_list_item::Entity::insert_many(item_creates)
-		.exec_with_returning_many(txn)
+		.exec_with_returning(txn)
 		.await
 }
 

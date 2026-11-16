@@ -11,16 +11,16 @@ use models::{
 	shared::enums::{FileStatus, LibraryPattern},
 };
 use sea_orm::{
-	prelude::*, sea_query::Query, IntoActiveModel, QueryOrder, QuerySelect, Set,
-	TransactionTrait,
+	IntoActiveModel, QueryOrder, QuerySelect, Set, TransactionTrait, prelude::*,
+	sea_query::Query,
 };
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 use crate::{
 	job::{
-		error::JobError, JobContext, JobExecuteLog, JobLifecycle, JobOutputExt,
-		JobProgress, JobStatus, JobTaskOutput, StumpJob, WorkingState,
+		JobContext, JobExecuteLog, JobLifecycle, JobOutputExt, JobProgress, JobStatus,
+		JobTaskOutput, StumpJob, WorkingState, error::JobError,
 	},
 	media::series::{BuiltSeries, SeriesBuilder},
 };
@@ -421,14 +421,12 @@ impl JobLifecycle for LibraryFileOrganizationJob {
 			.await
 		{
 			return match rename_without_overwrite(&target, &source).await {
-				Ok(()) => {
-					Ok(Self::failed(
-						&source_display,
-						format!(
-							"Database update failed; filesystem move was rolled back: {database_error}"
-						),
-					))
-				},
+				Ok(()) => Ok(Self::failed(
+					&source_display,
+					format!(
+						"Database update failed; filesystem move was rolled back: {database_error}"
+					),
+				)),
 				Err(rollback_error) => Err(JobError::TaskFailed(format!(
 					"Database update failed for {} ({database_error}) and the move from {} could not be rolled back: {rollback_error}",
 					source.display(),
@@ -885,7 +883,7 @@ mod tests {
 			schema.create_table_from_entity(job::Entity),
 			schema.create_table_from_entity(log::Entity),
 		] {
-			db.execute(db.get_database_backend().build(&statement))
+			db.execute_raw(db.get_database_backend().build(&statement))
 				.await
 				.unwrap();
 		}
@@ -1040,8 +1038,8 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn organizes_applied_metadata_with_multiple_writers_without_overwriting_conflicts(
-	) {
+	async fn organizes_applied_metadata_with_multiple_writers_without_overwriting_conflicts()
+	 {
 		let db = test_database().await;
 		create_job_test_tables(&db).await;
 		let temp = tempfile::tempdir().unwrap();

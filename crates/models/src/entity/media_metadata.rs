@@ -1,12 +1,15 @@
 use async_graphql::SimpleObject;
 use filter_gen::Ordering;
-use sea_orm::{prelude::*, QueryOrder, QuerySelect};
+use sea_orm::{QueryOrder, QuerySelect, prelude::*};
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::shared::ordering::{OrderBy, OrderDirection};
+use crate::shared::ordering::{OrderDirection, OrderingField};
+
+use super::media;
 
 #[skip_serializing_none]
+#[sea_orm::model]
 #[derive(
 	Clone,
 	Default,
@@ -111,24 +114,16 @@ pub struct Model {
 	#[sea_orm(column_type = "Json", nullable)]
 	#[graphql(skip)]
 	pub locked_fields: Option<serde_json::Value>,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
 	#[sea_orm(
-		belongs_to = "super::media::Entity",
-		from = "Column::MediaId",
-		to = "super::media::Column::Id",
+		belongs_to,
+		from = "media_id",
+		to = "id",
 		on_update = "Cascade",
 		on_delete = "Cascade"
 	)]
-	Media,
-}
-
-impl Related<super::media::Entity> for Entity {
-	fn to() -> RelationDef {
-		Relation::Media.def()
-	}
+	#[graphql(skip)]
+	#[serde(skip)]
+	pub media: BelongsTo<Option<media::Entity>>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
@@ -147,7 +142,7 @@ impl Entity {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sea_orm::{sea_query::SqliteQueryBuilder, QueryTrait};
+	use sea_orm::{QueryTrait, sea_query::SqliteQueryBuilder};
 
 	#[test]
 	fn test_find_for_column() {

@@ -41,8 +41,8 @@ vi.mock('../context', () => ({
 	useFileExplorerContext: () => mocks.explorerContext,
 }))
 
-vi.mock('@stump/i18n', () => ({
-	useLocaleContext: () => ({
+vi.mock('@/hooks/useTranslate', () => ({
+	useTranslate: () => ({
 		t: (key: string) =>
 			({
 				'fileExplorer.organizeLibrary.confirmation.confirm': 'Organize files',

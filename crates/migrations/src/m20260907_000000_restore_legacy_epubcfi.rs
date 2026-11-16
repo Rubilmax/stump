@@ -68,7 +68,7 @@ mod tests {
 			("reading_sessions", "epubcfi(/6/4)"),
 		] {
 			let row = db
-				.query_one(Statement::from_string(
+				.query_one_raw(Statement::from_string(
 					DbBackend::Sqlite,
 					format!("SELECT epubcfi FROM {table}"),
 				))
@@ -89,9 +89,11 @@ mod tests {
 			.await
 			.expect("repair missing columns");
 		assert!(manager.has_column("bookmarks", "epubcfi").await.unwrap());
-		assert!(manager
-			.has_column("reading_sessions", "epubcfi")
-			.await
-			.unwrap());
+		assert!(
+			manager
+				.has_column("reading_sessions", "epubcfi")
+				.await
+				.unwrap()
+		);
 	}
 }

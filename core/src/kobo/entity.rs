@@ -7,9 +7,11 @@ use models::{
 };
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{
-	prelude::*,
-	sea_query::{Condition, Expr, Order, Query, SimpleExpr, SubQueryStatement},
 	FromQueryResult, JoinType, QuerySelect, Select,
+	prelude::*,
+	sea_query::{
+		Condition, Expr, ExprTrait, Order, Query, SimpleExpr, SubQueryStatement,
+	},
 };
 
 use crate::kobo::{position::KoboPositionMap, sync_types::*};
@@ -506,10 +508,11 @@ impl ReadingState {
 			(Some(rs), Some(last_completed_at))
 				if rs.status == ReadingStatus::Abandoned =>
 			{
-				let last_modified = m
-					.finished_reading_session_last_reported_at
-					.unwrap_or(last_completed_at)
-					.max(rs.reported_at.or(rs.updated_at).unwrap_or(rs.created_at));
+				let last_modified = std::cmp::max(
+					m.finished_reading_session_last_reported_at
+						.unwrap_or(last_completed_at),
+					rs.reported_at.or(rs.updated_at).unwrap_or(rs.created_at),
+				);
 				Self::finished(media_id, media_created_at, last_modified, positions)
 			},
 			(Some(rs), None) if rs.status == ReadingStatus::Abandoned => Self::unread(
@@ -589,8 +592,8 @@ mod tests {
 	use chrono::{Duration as ChronoDuration, Utc};
 	use models::entity::{reading_session, user};
 	use models::services::reading_progress::{
-		mark_reading_progress_reset, reset_reading_progress, upsert_reading_session,
-		NormalizedProgression,
+		NormalizedProgression, mark_reading_progress_reset, reset_reading_progress,
+		upsert_reading_session,
 	};
 	use rust_decimal::Decimal;
 	use sea_orm::prelude::DateTimeWithTimeZone;

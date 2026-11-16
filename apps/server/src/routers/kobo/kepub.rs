@@ -844,9 +844,11 @@ mod tests {
 		let prune = prune_deleted_cache(&config, &snapshot, &[]);
 		tokio::pin!(prune);
 
-		assert!(tokio::time::timeout(Duration::from_millis(20), &mut prune)
-			.await
-			.is_err());
+		assert!(
+			tokio::time::timeout(Duration::from_millis(20), &mut prune)
+				.await
+				.is_err()
+		);
 		drop(download);
 		tokio::time::timeout(Duration::from_secs(1), prune)
 			.await

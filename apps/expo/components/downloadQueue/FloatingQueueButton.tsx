@@ -76,13 +76,7 @@ export function FloatingQueueButton() {
 	)
 }
 
-const FIXED_TAB_PATHS: Href[] = [
-	// @ts-expect-error: This doesn't appear in the Href type but I've def encountered / during runtime so
-	'/',
-	'/index',
-	'/library',
-	'/settings',
-]
+const FIXED_TAB_PATHS: Href[] = ['/', '/index', '/library', '/settings']
 
 const DYNAMIC_TAB_PATHS = [
 	/^\/server\/[^/]+\/?$/,

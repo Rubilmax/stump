@@ -11,7 +11,6 @@ _FORCE_INSTALL_YARN=${INSTALL_YARN:=0}
 
 dev_setup() {
   set -ex; \
-    cargo install --locked bacon; \
     cargo install cargo-workspaces; \
     yarn run setup; \
     set +x

@@ -1,26 +1,31 @@
 use async_graphql::SimpleObject;
 use chrono::Utc;
 use sea_orm::{
+	ActiveValue, Condition, DeriveEntityModel, ExprTrait, FromJsonQueryResult,
+	FromQueryResult, JoinType, QueryOrder, QuerySelect,
 	entity::prelude::*,
 	prelude::async_trait::async_trait,
 	sea_query::{Alias, ConditionType, Query, SelectStatement},
-	ActiveValue, Condition, DeriveEntityModel, FromJsonQueryResult, FromQueryResult,
-	JoinType, QueryOrder, QuerySelect,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
 	domain::reading_progress::next_sync_timestamp,
 	entity::{reading_device, reading_progress_reset},
-	prefixer::{parse_query_to_model, parse_query_to_model_optional, Prefixer},
+	prefixer::{Prefixer, parse_query_to_model, parse_query_to_model_optional},
 	shared::{enums::ReadingStatus, readium::ReadiumLocator},
 };
 
-use super::user::AuthUser;
+use super::{
+	media,
+	user::{self, AuthUser},
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult)]
 pub struct DeviceIds(pub Vec<String>);
 
+// TODO: add optional timezone
+#[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, SimpleObject)]
 #[graphql(name = "ReadingSessionModel")]
 #[sea_orm(table_name = "reading_sessions")]
@@ -61,9 +66,6 @@ pub struct Model {
 	#[sea_orm(column_type = "Text")]
 	pub status: ReadingStatus,
 
-	#[sea_orm(column_type = "Text", nullable)]
-	pub notes: Option<String>,
-
 	/// all device ids that contributed updates to this session
 	#[graphql(skip)]
 	#[sea_orm(column_type = "Json", nullable)]
@@ -80,6 +82,24 @@ pub struct Model {
 	pub reported_at: Option<DateTimeWithTimeZone>,
 	pub created_at: DateTimeWithTimeZone,
 	pub updated_at: Option<DateTimeWithTimeZone>,
+	#[sea_orm(
+		belongs_to,
+		from = "media_id",
+		to = "id",
+		on_update = "Cascade",
+		on_delete = "Cascade"
+	)]
+	#[graphql(skip)]
+	pub media: BelongsTo<media::Entity>,
+	#[sea_orm(
+		belongs_to,
+		from = "user_id",
+		to = "id",
+		on_update = "Cascade",
+		on_delete = "Cascade"
+	)]
+	#[graphql(skip)]
+	pub user: BelongsTo<user::Entity>,
 }
 
 impl Model {
@@ -154,38 +174,6 @@ impl FromQueryResult for ModelWithDevice {
 
 // note: because DeviceIds is a JSON col we can't derive the relation, to do that we'd
 // need a junction table instead, but i don't wanna deal with that rn so it's fine
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-	#[sea_orm(
-		belongs_to = "super::media::Entity",
-		from = "Column::MediaId",
-		to = "super::media::Column::Id",
-		on_update = "Cascade",
-		on_delete = "Cascade"
-	)]
-	Media,
-	#[sea_orm(
-		belongs_to = "super::user::Entity",
-		from = "Column::UserId",
-		to = "super::user::Column::Id",
-		on_update = "Cascade",
-		on_delete = "Cascade"
-	)]
-	User,
-}
-
-impl Related<super::media::Entity> for Entity {
-	fn to() -> RelationDef {
-		Relation::Media.def()
-	}
-}
-
-impl Related<super::user::Entity> for Entity {
-	fn to() -> RelationDef {
-		Relation::User.def()
-	}
-}
-
 impl Entity {
 	/// subquery used to detect if there is a newer session row for the same
 	/// `(user_id, media_id)` as the outer `reading_sessions` row
@@ -311,7 +299,7 @@ impl ActiveModelBehavior for ActiveModel {
 			{
 				previous_reported_at = Some(
 					previous_reported_at
-						.map_or(previous, |current| current.max(previous)),
+						.map_or(previous, |current| std::cmp::max(current, previous)),
 				);
 			}
 		}

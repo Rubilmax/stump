@@ -23,7 +23,7 @@ type Props = {
 }
 
 export default function SavedServerListItem({ server, onEdit, onDelete }: Props) {
-	const { t } = useTranslate()
+	const { translate } = useTranslate()
 
 	const { deleteServerToken } = useSavedServers()
 
@@ -65,7 +65,6 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 
 	const onPress = (overridePath?: string) => {
 		router.push({
-			// @ts-expect-error: It's fine
 			pathname: overridePath || serverPath,
 			params: {
 				serverId: server.id,
@@ -83,7 +82,7 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 								{
 									items: [
 										{
-											label: t('common.accessOpdsV2'),
+											label: translate('shared.common.accessOpdsV2'),
 											icon: {
 												ios: 'antenna.radiowaves.left.and.right',
 												android: Rss,
@@ -91,7 +90,7 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 											onPress: () => onPress('/opds/[serverId]'),
 										} as const,
 										{
-											label: t('common.accessOpdsV1'),
+											label: translate('shared.common.accessOpdsV1'),
 											icon: {
 												ios: 'antenna.radiowaves.left.and.right',
 												android: Rss,
@@ -105,7 +104,7 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 					{
 						items: [
 							{
-								label: t('common.edit'),
+								label: translate('shared.common.edit'),
 								icon: {
 									ios: 'slider.horizontal.2.square.on.square',
 									android: Sliders,
@@ -113,7 +112,7 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 								onPress: onEdit,
 							},
 							{
-								label: t('savedServerActions.clearCache'),
+								label: translate('shared.savedServerActions.clearCache'),
 								icon: {
 									ios: 'clear',
 									android: SquareX,
@@ -124,8 +123,8 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 							...(server.kind === 'stump'
 								? [
 										{
-											label: t('savedServerActions.discardTokens.label'),
-											subtext: t('savedServerActions.discardTokens.description'),
+											label: translate('shared.savedServerActions.discardTokens.label'),
+											subtext: translate('shared.savedServerActions.discardTokens.description'),
 											icon: {
 												ios: 'key.fill',
 												android: KeyRound,
@@ -146,7 +145,7 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 					{
 						items: [
 							{
-								label: t('common.delete'),
+								label: translate('shared.common.delete'),
 								icon: {
 									ios: 'trash',
 									android: Trash,

@@ -4,12 +4,12 @@ use std::{
 };
 
 use axum::{
+	Extension, Json, Router,
 	extract::{Path, Query, State},
 	http::header,
 	middleware,
 	response::{IntoResponse, Response},
 	routing::get,
-	Extension, Json, Router,
 };
 use graphql::data::AuthContext;
 use models::{
@@ -21,8 +21,8 @@ use serde::Deserialize;
 use stump_core::{
 	media::processor::epub::get_resource_by_path,
 	readium::{
-		search::{search_epub, EpubSearchOptions, EPUB_SEARCH_DEFAULT_LIMIT},
 		ReadiumManifestGenerator,
+		search::{EPUB_SEARCH_DEFAULT_LIMIT, EpubSearchOptions, search_epub},
 	},
 };
 use tokio::sync::Semaphore;
@@ -31,7 +31,7 @@ use tokio_util::sync::CancellationToken;
 use crate::{
 	config::state::AppState,
 	errors::{APIError, APIResult},
-	middleware::{auth::auth_middleware, host::HostDetails, HostExtractor},
+	middleware::{HostExtractor, auth::auth_middleware, host::HostDetails},
 	utils::http::BufferResponse,
 };
 

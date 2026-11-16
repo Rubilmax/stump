@@ -1,9 +1,9 @@
 use async_graphql::{Enum, InputObject, Json, OneofObject, SimpleObject, Union};
 use sea_orm::{
-	prelude::*,
-	sea_query::{ArrayType, Nullable, ValueType, ValueTypeErr},
 	ColIdx, DeriveActiveEnum, EnumIter, QueryResult, TryGetError, TryGetableFromJson,
 	Value,
+	prelude::*,
+	sea_query::{ArrayType, Nullable, ValueType, ValueTypeErr},
 };
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
@@ -409,7 +409,7 @@ mod tests {
 			];
 			for (value, expected) in cases {
 				let row = db
-					.query_one(Statement::from_sql_and_values(
+					.query_one_raw(Statement::from_sql_and_values(
 						DatabaseBackend::Sqlite,
 						"SELECT ? AS arrangement",
 						[value],
@@ -444,10 +444,12 @@ mod tests {
 
 	#[test]
 	fn unknown_config_tag_errors() {
-		assert!(serde_json::from_value::<ArrangementConfig>(
-			serde_json::json!({"type": "Unknown"})
-		)
-		.is_err());
+		assert!(
+			serde_json::from_value::<ArrangementConfig>(
+				serde_json::json!({"type": "Unknown"})
+			)
+			.is_err()
+		);
 	}
 
 	#[test]

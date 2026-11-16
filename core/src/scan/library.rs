@@ -10,25 +10,27 @@ use models::{
 		library, library_config, library_scan_record, media, metadata_provider_config,
 		scanned_directory, series,
 	},
+	services::scanned_directory::stored_mtimes_under_path,
 	shared::enums::FileStatus,
 };
 use sea_orm::{
+	QuerySelect, Set, TransactionTrait,
 	prelude::*,
 	sea_query::{OnConflict, Query},
-	QuerySelect, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
+	CoreEvent,
 	database::SQLITE_BIND_LIMIT,
 	event::{self, CreatedOrUpdatedManyMedia},
 	image::thumbnail::{
-		bump_media_thumbnail_fallbacks, PlaceholderGenerationJobConfig,
-		PlaceholderGenerationJobScope, ThumbnailGenerationJobParams,
+		PlaceholderGenerationJobConfig, PlaceholderGenerationJobScope,
+		ThumbnailGenerationJobParams, bump_media_thumbnail_fallbacks,
 	},
 	job::{
-		error::JobError, CoreJobOutput, JobContext, JobExecuteLog, JobLifecycle,
-		JobOutputExt, JobProgress, JobTaskOutput, StumpJob, WorkingState,
+		CoreJobOutput, JobContext, JobExecuteLog, JobLifecycle, JobOutputExt,
+		JobProgress, JobTaskOutput, StumpJob, WorkingState, error::JobError,
 	},
 	metadata::provider::MetadataFetchJobParams,
 	scan::{
@@ -37,27 +39,26 @@ use crate::{
 		utils::{
 			build_ignore_rules,
 			media::{
-				build_and_insert_media, handle_missing_media, handle_restored_media,
-				visit_and_update_media, MediaBuildOperation, MediaOperationOutput,
+				MediaBuildOperation, MediaOperationOutput, build_and_insert_media,
+				handle_missing_media, handle_restored_media, visit_and_update_media,
 			},
 			oneshot::{
+				OneshotOperationOutput, PendingOneshotConversion, SeriesConversionOutput,
 				build_and_insert_oneshots,
 				convert_previous_oneshot_entries_to_series_media,
-				convert_to_oneshot_series, OneshotOperationOutput,
-				PendingOneshotConversion, SeriesConversionOutput,
+				convert_to_oneshot_series,
 			},
 			series::{
-				handle_missing_series, insert_series, safely_build_series,
-				MissingSeriesOutput,
+				MissingSeriesOutput, handle_missing_series, insert_series,
+				safely_build_series,
 			},
 		},
 		walk::{
-			walk_library, walk_oneshots, walk_series, WalkedLibrary, WalkedOneshots,
-			WalkedSeries, WalkerCtx,
+			WalkedLibrary, WalkedOneshots, WalkedSeries, WalkerCtx, walk_library,
+			walk_oneshots, walk_series,
 		},
 	},
 	utils::chain_optional_iter,
-	CoreEvent,
 };
 
 /// The task variants that are used to scan a library
@@ -139,24 +140,24 @@ impl LibraryScanJob {
 #[serde(rename_all = "camelCase")]
 pub struct LibraryScanOutput {
 	/// The number of files visited during the scan
-	total_files: u64,
+	pub total_files: u64,
 	/// The number of directories visited during the scan
-	total_directories: u64,
+	pub total_directories: u64,
 	/// The number of files that were ignored during the scan
-	ignored_files: u64,
+	pub ignored_files: u64,
 	/// The number of files that were deemed to be skipped during the scan, e.g. it
 	/// exists in the database but has not been modified since the last scan
-	skipped_files: u64,
+	pub skipped_files: u64,
 	/// The number of ignored directories during the scan
-	ignored_directories: u64,
+	pub ignored_directories: u64,
 	/// The number of media entities created
-	created_media: u64,
+	pub created_media: u64,
 	/// The number of media entities updated
-	updated_media: u64,
+	pub updated_media: u64,
 	/// The number of series entities created
-	created_series: u64,
+	pub created_series: u64,
 	/// The number of series entities updated
-	updated_series: u64,
+	pub updated_series: u64,
 }
 
 impl JobOutputExt for LibraryScanOutput {
@@ -205,14 +206,8 @@ impl JobLifecycle for LibraryScanJob {
 
 		self.config = Some(config);
 
-		let stored_dir_mtimes = scanned_directory::Entity::find()
-			.filter(scanned_directory::Column::Path.starts_with(self.path.as_str()))
-			.all(ctx.conn())
-			.await
-			.unwrap_or_default()
-			.into_iter()
-			.map(|r| (r.path, r.last_mtime as u64))
-			.collect::<HashMap<String, u64>>();
+		let stored_dir_mtimes =
+			stored_mtimes_under_path(self.path.as_str(), ctx.conn()).await?;
 		tracing::debug!(
 			count = stored_dir_mtimes.len(),
 			"Loaded stored directory mtimes"
@@ -864,13 +859,13 @@ impl JobLifecycle for LibraryScanJob {
 						// NOTE: I don't error here in order to collect and report on the error later on.
 						// This can perhaps be refactored later on so that the parent (Job struct) properly handles this instead, however for now this is fine.
 						return Ok(JobTaskOutput {
-                        output,
-                        logs: vec![JobExecuteLog::error(format!(
-                            "Critical error during attempt to walk oneshot directory: {:?}",
-                            core_error.to_string()
-                        ))],
-                        subtasks,
-                    });
+							output,
+							logs: vec![JobExecuteLog::error(format!(
+								"Critical error during attempt to walk oneshot directory: {:?}",
+								core_error.to_string()
+							))],
+							subtasks,
+						});
 					},
 				};
 

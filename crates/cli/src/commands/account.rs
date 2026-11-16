@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 
 use clap::Subcommand;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Password};
+use dialoguer::{Confirm, Input, Password, theme::ColorfulTheme};
 use models::entity::{
 	api_key, book_club_member, bookmark, favorite_library, favorite_media,
 	favorite_series, last_library_visit, library_exclusion, media_annotation,
@@ -9,11 +9,11 @@ use models::entity::{
 	user_preferences,
 };
 use sea_orm::{
-	prelude::*, ActiveValue::Set, IntoActiveModel, QueryTrait, TransactionTrait,
+	ActiveValue::Set, IntoActiveModel, QueryTrait, TransactionTrait, prelude::*,
 };
 use stump_core::{config::StumpConfig, database::connect};
 
-use crate::{error::CliResult, CliError};
+use crate::{CliError, error::CliResult};
 
 use super::default_progress_spinner;
 
@@ -227,7 +227,9 @@ async fn change_server_owner(config: &StumpConfig) -> CliResult<()> {
 			if existing_user.is_some() {
 				Ok(())
 			} else {
-				Err("An account with that username does not exist or their account is locked")
+				Err(
+					"An account with that username does not exist or their account is locked",
+				)
 			}
 		})
 		.interact_text()?;
@@ -614,6 +616,7 @@ mod tests {
 			media_annotation, reading_session, refresh_token, review, series, session,
 			user, user_login_activity, user_preferences,
 		},
+		services::user::create_user_with_preferences,
 		shared::{
 			api_key::APIKeyPermissions,
 			enums::{
@@ -624,9 +627,9 @@ mod tests {
 		},
 	};
 	use sea_orm::{
+		ActiveModelTrait, ColumnTrait, Database, DbConn, EntityTrait, QueryFilter, Set,
 		prelude::{Date, DateTimeWithTimeZone},
 		sqlx::types::chrono::Utc,
-		ActiveModelTrait, ColumnTrait, Database, DbConn, EntityTrait, QueryFilter, Set,
 	};
 
 	use super::do_migrate_oidc_account;
@@ -662,30 +665,9 @@ mod tests {
 		) -> user::Model {
 			let model = user.unwrap_or_else(Self::active_model);
 
-			let user = model.insert(db).await.expect("could not insert user");
-			let user_preferences = user_preferences::ActiveModel {
-				user_id: Set(Some(user.id.clone())),
-				..Default::default()
-			}
-			.insert(db)
-			.await
-			.expect("could not insert user preferences");
-
-			user::Entity::update_many()
-				.col_expr(
-					user::Column::UserPreferencesId,
-					sea_orm::sea_query::Expr::value(Some(user_preferences.id)),
-				)
-				.filter(user::Column::Id.eq(user.id.clone()))
-				.exec(db)
+			create_user_with_preferences(db, model, None)
 				.await
-				.expect("could not update user with preferences id");
-
-			user::Entity::find_by_id(user.id)
-				.one(db)
-				.await
-				.expect("could not find updated user")
-				.expect("user should exist after update")
+				.expect("could not create user with preferences")
 		}
 	}
 

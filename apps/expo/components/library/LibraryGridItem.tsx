@@ -54,7 +54,6 @@ export default function LibraryGridItem({ library, getLayoutNumber }: Props) {
 
 	return (
 		<View className="w-full items-center">
-			{/* @ts-expect-error: String path */}
 			<Pressable onPress={() => router.navigate(href)}>
 				{({ pressed }) => (
 					<View className={cn('relative', { 'opacity-80': pressed })}>

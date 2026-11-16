@@ -5,7 +5,7 @@ use std::path::Path;
 use axum::{
 	body::Body,
 	extract::Request,
-	http::{header, HeaderMap},
+	http::{HeaderMap, header},
 	response::{IntoResponse, Response},
 };
 use graphql::data::AuthContext;

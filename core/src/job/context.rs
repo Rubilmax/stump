@@ -1,16 +1,16 @@
 use std::{sync::Arc, time::Instant};
 
 use crate::{
+	CoreError,
 	config::StumpConfig,
 	event::{CoreEvent, JobOutput},
 	job::JobUpdate,
-	CoreError,
 };
 use dashmap::DashMap;
 use models::entity::{job, log, server_config};
 use sea_orm::{
-	prelude::*, sea_query::OnConflict, sqlx::types::chrono::Utc, ActiveValue::Set,
-	DatabaseConnection, SelectColumns,
+	ActiveValue::Set, DatabaseConnection, QuerySelect, prelude::*, sea_query::OnConflict,
+	sqlx::types::chrono::Utc,
 };
 use serde::Serialize;
 use tokio::sync::broadcast;
@@ -19,8 +19,8 @@ use tokio_util::sync::CancellationToken;
 use apalis::prelude::{MemoryStorage, MessageQueue};
 
 use super::{
-	dispatch::StumpJob, error::JobError, CoreJobOutput, JobExecuteLog, JobOutputExt,
-	JobProgress, JobStatus,
+	CoreJobOutput, JobExecuteLog, JobOutputExt, JobProgress, JobStatus,
+	dispatch::StumpJob, error::JobError,
 };
 
 #[derive(Clone)]
@@ -159,7 +159,7 @@ impl JobContext {
 	/// A convenience method to fetch the encryption key from the server config
 	pub async fn get_encryption_key(&self) -> Result<String, CoreError> {
 		let record = server_config::Entity::find()
-			.select_column(server_config::Column::EncryptionKey)
+			.column(server_config::Column::EncryptionKey)
 			.one(self.apalis_state.conn.as_ref())
 			.await?;
 

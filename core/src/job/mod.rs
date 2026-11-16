@@ -1,3 +1,7 @@
+//! The background job system for Stump, built on top of Apalis. It handles job
+//! scheduling, dispatch, and progress tracking via channels which report back
+//! to corresponding listeners in the GraphQL layer
+
 // https://github.com/rust-lang/rust-clippy/issues/12281
 // ^ There is a bug in clippy after updating the toolchain. I am subscribed to the issue,
 // and will remove this once it is resolved.
@@ -12,7 +16,7 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 use models::shared::enums::LogLevel;
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
 
 pub mod context;
 pub mod dispatch;
@@ -22,7 +26,7 @@ mod scheduler;
 
 use chrono::{DateTime, Utc};
 pub use context::{ApalisWorkerState, JobContext};
-pub use dispatch::{dispatch_job, CoreJobOutput, JobOutputExt, StumpJob};
+pub use dispatch::{CoreJobOutput, JobOutputExt, StumpJob, dispatch_job};
 use error::JobError;
 pub use models::shared::enums::JobStatus;
 pub use progress::*;

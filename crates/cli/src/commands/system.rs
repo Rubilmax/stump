@@ -5,11 +5,11 @@ use dialoguer::Confirm;
 use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
 use stump_core::{
 	config::StumpConfig,
-	database::{connect, JournalMode},
+	database::{JournalMode, connect},
 };
 
 use super::default_progress_spinner;
-use crate::{error::CliResult, CliError};
+use crate::{CliError, error::CliResult};
 
 /// Subcommands for interacting with the system commands
 #[derive(Subcommand, Debug)]
@@ -49,7 +49,7 @@ async fn set_journal_mode(mode: JournalMode, config: &StumpConfig) -> CliResult<
 	progress.set_message("Fetching current journal mode...");
 
 	let journal_mode = match conn
-		.query_one(Statement::from_string(
+		.query_one_raw(Statement::from_string(
 			DatabaseBackend::Sqlite,
 			"PRAGMA journal_mode;",
 		))

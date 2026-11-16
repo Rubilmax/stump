@@ -1,13 +1,13 @@
-use async_graphql::{Context, Object, Result, ID};
+use async_graphql::{Context, ID, Object, Result};
 use chrono::Utc;
 use models::{
 	entity::{favorite_media, kobo_sync_media, library, library_config, media, series},
 	shared::enums::UserPermission,
 };
 use sea_orm::{
+	ExprTrait, IntoActiveModel, QuerySelect, Set, TransactionTrait,
 	prelude::*,
 	sea_query::{OnConflict, Query},
-	IntoActiveModel, QuerySelect, Set, TransactionTrait,
 };
 use std::collections::{HashMap, HashSet};
 use stump_core::{
@@ -282,11 +282,7 @@ impl MediaMutation {
 			.await?
 			.ok_or("Associated library for book not found")?;
 
-		let page = input.page();
-
-		if book.media.extension == "epub" && page > 1 {
-			return Err("Cannot set thumbnail from EPUB chapter".into());
-		}
+		let page = input.page_for(&book.media.extension)?;
 
 		let image_options = config
 			.ok_or("Library config not found")?

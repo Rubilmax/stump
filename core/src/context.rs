@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use apalis::prelude::{MemoryStorage, MessageQueue};
 use models::entity::server_config;
-use sea_orm::{prelude::*, DatabaseConnection, MockDatabase, SelectColumns};
-use tokio::sync::broadcast::{channel, Receiver, Sender};
+use sea_orm::{DatabaseConnection, MockDatabase, QuerySelect, prelude::*};
+use tokio::sync::broadcast::{Receiver, Sender, channel};
 
 use crate::{
+	CoreError, CoreResult,
 	config::StumpConfig,
 	database,
 	event::CoreEvent,
-	job::{context::ApalisWorkerState, StumpJob},
+	job::{StumpJob, context::ApalisWorkerState},
 	scan::watcher::LibraryWatcher,
-	CoreError, CoreResult,
 };
 
 type EventChannel = (Sender<CoreEvent>, Receiver<CoreEvent>);
@@ -189,7 +189,7 @@ impl Ctx {
 	/// Retrieves the encryption key from the server configuration
 	pub async fn get_encryption_key(&self) -> CoreResult<String> {
 		let record = server_config::Entity::find()
-			.select_column(server_config::Column::EncryptionKey)
+			.column(server_config::Column::EncryptionKey)
 			.one(self.conn.as_ref())
 			.await?;
 

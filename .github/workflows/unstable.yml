@@ -48,8 +48,7 @@ jobs:
               - './lerna.json'
               - './package.json'
               - './rust-toolchain.toml'
-              - './tsconfig.json'
-              - './tsconfig.options.json'
+              - './tsconfig.base.json'
               - './yarn.lock'
             workflow:
               - './.github/workflows/unstable.yml'

@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::Utc;
-use futures_util::{stream, StreamExt};
+use futures_util::{StreamExt, stream};
 use models::entity::{
 	kobo_sync_media, kobo_sync_session,
 	media::{self},
@@ -439,10 +439,10 @@ impl<'a> SyncPage<'a> {
 			);
 			content.apply_to_entitlement(&mut entitlement);
 			if let Some(selection) = selection.as_ref() {
-				entitlement.book_entitlement.last_modified = entitlement
-					.book_entitlement
-					.last_modified
-					.max(selection.updated_at.to_utc());
+				entitlement.book_entitlement.last_modified = std::cmp::max(
+					entitlement.book_entitlement.last_modified,
+					selection.updated_at.to_utc(),
+				);
 			}
 
 			if !is_selected {

@@ -5,8 +5,8 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { CreateOrUpdateLibrarySchema } from '../schema'
 import LibraryTypeSelect from '../sections/LibraryType'
 
-vi.mock('@stump/i18n', () => ({
-	useLocaleContext: () => ({ t: (key: string) => key }),
+vi.mock('@/hooks/useTranslate', () => ({
+	useTranslate: () => ({ t: (key: string) => key, translate: (key: string) => key }),
 }))
 
 function Subject() {

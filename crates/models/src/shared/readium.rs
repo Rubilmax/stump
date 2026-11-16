@@ -1,6 +1,6 @@
 use async_graphql::{InputObject, SimpleObject};
 use derive_builder::Builder;
-use sea_orm::{prelude::Decimal, FromJsonQueryResult};
+use sea_orm::{FromJsonQueryResult, prelude::Decimal};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -189,4 +189,10 @@ pub struct ReadiumLocator {
 	#[graphql(default = "application/xhtml+xml", name = "type")]
 	#[serde(default = "default_type")]
 	pub r#type: String,
+}
+
+impl ReadiumLocator {
+	pub fn page(&self) -> Option<i32> {
+		self.locations.as_ref().and_then(|loc| loc.position)
+	}
 }

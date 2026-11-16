@@ -8,7 +8,7 @@ const baseLink = z.object({
 	href: z.string(),
 	type: z.string().nullish(),
 	templated: z.boolean().nullish(),
-	properties: z.record(z.unknown()).nullish(),
+	properties: z.record(z.string(), z.unknown()).nullish(),
 })
 export type OPDSBaseLink = z.infer<typeof baseLink>
 
@@ -35,6 +35,7 @@ export type OPDSLink = z.infer<typeof link>
 const languageMap = z.union([
 	z.string(),
 	z.record(
+		z.string(),
 		z
 			.string()
 			.regex(
@@ -162,7 +163,7 @@ const metadata = z
 		subject: subject.nullish(),
 	})
 	.merge(paginationMeta)
-	.and(z.record(z.unknown()))
+	.and(z.record(z.string(), z.unknown()))
 	.transform((data) => {
 		if (data.title.match(/\.[a-z0-9]+$/)) {
 			data.title = data.title.replace(/\.[a-z0-9]+$/, '')
@@ -184,20 +185,6 @@ export const publication = z.object({
 })
 export type OPDSPublication = z.infer<typeof publication>
 
-const progessionLocation = z.object({
-	fragments: z.array(z.string()).nullish(),
-	position: z.number().nullish(),
-	progression: z.number().nullish(),
-	totalProgression: z.number().nullish(),
-})
-
-const progressionLocator = z.object({
-	title: z.string().nullish(),
-	href: z.string().nullish(),
-	type: z.string().nullish(),
-	locations: progessionLocation.nullish(),
-})
-
 const progressionDevice = z.object({
 	id: z.string(),
 	name: z.string(),
@@ -205,9 +192,20 @@ const progressionDevice = z.object({
 
 export const progression = z
 	.object({
+		title: z.string().nullish(),
 		modified: z.string(),
 		device: progressionDevice.nullish(),
-		locator: progressionLocator,
+		/// Total progression in the publication expressed as a percentage (0.0 to 1.0)
+		progression: z.number(),
+		/// A list of references inside the publication which orient to the current position.
+		///
+		/// Rant: The spec is really loose and it makes it hard for a client to cover
+		/// all the bases. For Stump, the server will always send:
+		/// - #page=N for paged media
+		/// - href with optional fragment for EPUBs
+		///
+		/// See https://drafts.opds.io/opds-progression-1.0.html#references
+		references: z.array(z.string()).nullish(),
 	})
 	.transform((data) => {
 		const date = new Date(data.modified)
@@ -218,36 +216,17 @@ export const progression = z
 	})
 export type OPDSProgression = z.infer<typeof progression>
 
-const progressionLocationInput = z.object({
-	fragments: z.array(z.string()).optional(),
-	position: z.number().optional(),
-	progression: z.number().optional(),
-	totalProgression: z.number().optional(),
-})
-
-const progressionTextInput = z.object({
-	before: z.string().optional(),
-	highlight: z.string().optional(),
-	after: z.string().optional(),
-})
-
-const progressionLocatorInput = z.object({
-	href: z.string(),
-	type: z.string(),
-	title: z.string().optional(),
-	locations: progressionLocationInput.optional(),
-	text: progressionTextInput.optional(),
-})
-
 const progressionDeviceInput = z.object({
 	id: z.string(),
 	name: z.string(),
 })
 
 export const progressionInput = z.object({
+	title: z.string().optional(),
 	modified: z.string(),
 	device: progressionDeviceInput,
-	locator: progressionLocatorInput,
+	progression: z.number(),
+	references: z.array(z.string()).optional(),
 })
 export type OPDSProgressionInput = z.infer<typeof progressionInput>
 

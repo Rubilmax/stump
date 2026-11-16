@@ -2,9 +2,9 @@ use async_graphql::{InputObject, InputType, OneofObject};
 use filter_gen::IntoFilter;
 use models::shared::enums::{FileStatus, LibraryType, ReadingStatus};
 use sea_orm::{
+	Condition, ExprTrait, Value,
 	prelude::DateTimeWithTimeZone,
-	sea_query::{ConditionExpression, Expr as QExpr, Func},
-	Condition, Value,
+	sea_query::{Expr as QExpr, Func},
 };
 use serde::{Deserialize, Serialize};
 
@@ -170,7 +170,7 @@ where
 pub(crate) fn apply_numeric_filter<C, T>(
 	column: C,
 	filter: NumericFilter<T>,
-) -> impl Into<ConditionExpression>
+) -> impl Into<Condition>
 where
 	C: sea_orm::ColumnTrait,
 	T: InputType + Into<Value>,
@@ -214,7 +214,7 @@ mod tests {
 	use super::*;
 	use models::entity::media;
 	use pretty_assertions::assert_eq;
-	use sea_orm::{prelude::*, sea_query::SqliteQueryBuilder, QuerySelect, QueryTrait};
+	use sea_orm::{QuerySelect, QueryTrait, prelude::*, sea_query::SqliteQueryBuilder};
 
 	#[test]
 	fn test_string_like_any_of() {

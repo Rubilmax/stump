@@ -8,7 +8,7 @@ mod reading_progress;
 
 use axum::http::StatusCode;
 use common::TestApp;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// server should start, the first user can register and login successfully
 #[tokio::test]

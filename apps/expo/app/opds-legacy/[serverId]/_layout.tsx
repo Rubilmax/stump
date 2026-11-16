@@ -81,7 +81,6 @@ function Screen() {
 	}, [activeServer.id, removeInstanceFromCache])
 
 	if (!activeServer) {
-		// @ts-expect-error: It's fine
 		return <Redirect href="/" />
 	}
 

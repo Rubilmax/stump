@@ -4,10 +4,10 @@ use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use models::entity::{reading_progress_reset, reading_session};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tests::fake_data;
 
-use crate::common::{api_key::create_api_key_for_user, TestApp};
+use crate::common::{TestApp, api_key::create_api_key_for_user};
 
 async fn setup() -> (TestApp, String, String) {
 	let app = TestApp::new().await;

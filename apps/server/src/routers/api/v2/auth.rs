@@ -1,25 +1,26 @@
 use axum::{
+	Extension, Json, Router,
 	extract::{Query, Request, State},
 	http::{Response, StatusCode},
 	middleware,
 	response::IntoResponse,
 	routing::{get, post},
-	Extension, Json, Router,
 };
-use axum_extra::{headers::UserAgent, TypedHeader};
+use axum_extra::{TypedHeader, headers::UserAgent};
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use graphql::data::{AuthContext, ServiceContext};
 use models::{
 	entity::{
 		session,
 		user::{self, AuthUser, LoginUser},
-		user_login_activity, user_preferences,
+		user_login_activity,
 	},
+	services::user::create_user_with_preferences,
 	shared::image::ImageRef,
 };
 use reqwest::header;
-use sea_orm::{prelude::*, IntoActiveModel, TransactionTrait};
 use sea_orm::{DatabaseConnection, EntityTrait, Set};
+use sea_orm::{ExprTrait, prelude::*};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use tracing::error;
@@ -27,14 +28,14 @@ use tracing::error;
 use crate::{
 	config::{
 		jwt::{
-			create_jwt_auth, exchange_refresh_token, extract_jti_from_refresh_token,
-			JwtTokenPair,
+			JwtTokenPair, create_jwt_auth, exchange_refresh_token,
+			extract_jti_from_refresh_token,
 		},
-		session::{delete_cookie_header, SESSION_USER_KEY},
+		session::{SESSION_USER_KEY, delete_cookie_header},
 		state::AppState,
 	},
 	errors::{APIError, APIResult},
-	middleware::{auth::auth_middleware, ClientIp, HostExtractor},
+	middleware::{ClientIp, HostExtractor, auth::auth_middleware},
 	utils::{default_true, fetch_session_user, hash_password, verify_password},
 };
 
@@ -422,37 +423,22 @@ pub async fn register(
 
 	let hashed_password = hash_password(&input.password, &ctx.config)?;
 
-	let tx = conn.begin().await?;
-
 	let active_model = user::ActiveModel {
 		username: Set(input.username.clone()),
 		hashed_password: Set(hashed_password),
 		is_server_owner: Set(is_server_owner),
 		..Default::default()
 	};
-	let created_user = active_model.insert(&tx).await?;
-
-	let active_model = user_preferences::ActiveModel {
-		user_id: Set(Some(created_user.id.clone())),
-		..Default::default()
-	};
-	let created_user_preferences = active_model.insert(&tx).await?;
-
-	// Write back the preferences ID to the user
-	let mut updated_user = created_user.into_active_model();
-	updated_user.user_preferences_id = Set(Some(created_user_preferences.id));
-	let updated_user = updated_user.update(&tx).await?;
+	let updated_user = create_user_with_preferences(conn, active_model, None).await?;
 
 	let auth_user = user::LoginUser::find()
 		.filter(user::Column::Id.eq(updated_user.id.clone()))
 		.into_model::<user::LoginUser>()
-		.one(&tx)
+		.one(conn)
 		.await?
 		.ok_or(APIError::InternalServerError(
 			"Failed to fetch user after registration.".to_string(),
 		))?;
-
-	tx.commit().await?;
 
 	let auth_user = inject_avatar_url(AuthUser::from(auth_user), service);
 

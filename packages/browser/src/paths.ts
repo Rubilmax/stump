@@ -51,6 +51,7 @@ const pathsInternal = {
 	bookClubs: () => '/clubs',
 	bookManagement: (id: string) => `/books/${id}/manage`,
 	bookOverview: (id: string) => `/books/${id}`,
+	bookReadingTimeline: (id: string) => `/books/${id}/reading-timeline`,
 	bookReader: (
 		id: string,
 		{
@@ -102,6 +103,7 @@ const pathsInternal = {
 	editEmailer: (id: number) => pathsInternal.settings('email') + `/${id}/edit`,
 	home: () => '/',
 	libraries: () => '/libraries',
+	library: (id: string) => `/libraries/${id}`,
 	libraryBooks: (id: string, page?: number) => {
 		if (page !== undefined) {
 			return `/libraries/${id}/books?page=${page}`
@@ -137,6 +139,7 @@ const pathsInternal = {
 	smartListSettings: (id: string) => `/smart-lists/${id}/settings`,
 	smartListCreate: () => '/smart-lists/create',
 	smartLists: () => '/smart-lists',
+	stats: () => '/stats',
 	updateUser: (id: string) => `${pathsInternal.settings('users')}/${id}/manage`,
 } as const
 
@@ -163,6 +166,7 @@ export function usePaths() {
 		bookClubs: () => `${basePath}${pathsInternal.bookClubs()}`,
 		bookManagement: (id: string) => `${basePath}${pathsInternal.bookManagement(id)}`,
 		bookOverview: (id: string) => `${basePath}${pathsInternal.bookOverview(id)}`,
+		bookReadingTimeline: (id: string) => `${basePath}${pathsInternal.bookReadingTimeline(id)}`,
 		bookReader: (id: string, params: BookReaderParams = {}) =>
 			`${basePath}${pathsInternal.bookReader(id, params)}`,
 		bookSearch: () => `${basePath}${pathsInternal.bookSearch()}`,
@@ -173,6 +177,7 @@ export function usePaths() {
 		editEmailer: (id: number) => `${basePath}${pathsInternal.editEmailer(id)}`,
 		home: () => `${basePath}${pathsInternal.home()}`,
 		libraries: () => `${basePath}${pathsInternal.libraries()}`,
+		library: (id: string) => `${basePath}${pathsInternal.library(id)}`,
 		libraryBooks: (id: string, page?: number) =>
 			`${basePath}${pathsInternal.libraryBooks(id, page)}`,
 		libraryCreate: () => `${basePath}${pathsInternal.libraryCreate()}`,
@@ -195,6 +200,7 @@ export function usePaths() {
 		smartListSettings: (id: string) => `${basePath}${pathsInternal.smartListSettings(id)}`,
 		smartListCreate: () => `${basePath}${pathsInternal.smartListCreate()}`,
 		smartLists: () => `${basePath}${pathsInternal.smartLists()}`,
+		stats: () => `${basePath}${pathsInternal.stats()}`,
 		updateUser: (id: string) => `${basePath}${pathsInternal.updateUser(id)}`,
 	}
 }

@@ -25,7 +25,7 @@ async fn set_postgres_timestamp_type(
 	}
 
 	let txn = conn.begin().await?;
-	txn.execute(Statement::from_string(
+	txn.execute_raw(Statement::from_string(
 		DbBackend::Postgres,
 		"SET LOCAL TIME ZONE 'UTC'",
 	))
@@ -43,7 +43,7 @@ async fn set_postgres_timestamp_type(
 			 ALTER COLUMN reported_at TYPE {timestamp_type}"
 		),
 	] {
-		txn.execute(Statement::from_string(DbBackend::Postgres, table_columns))
+		txn.execute_raw(Statement::from_string(DbBackend::Postgres, table_columns))
 			.await?;
 	}
 	txn.commit().await

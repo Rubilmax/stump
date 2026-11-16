@@ -17,6 +17,7 @@ const ServerConnectionErrorScene = lazy(
 	() => import('./scenes/error/ServerConnectionErrorScene.tsx'),
 )
 const LoginOrClaimScene = lazy(() => import('./scenes/auth'))
+const StatsScene = lazy(() => import('./scenes/stats'))
 
 type AppRouterProps = {
 	basePath?: string
@@ -29,6 +30,16 @@ export function AppRouter({ basePath }: AppRouterProps = {}) {
 		throw new Error('Base URL is not set')
 	}
 
+	// TODO(ux):
+	// - explore needs to either go away or transform into some kind of suggestion system
+	//    - e.g., explore most commonly-read genres, least-common, recently added, old-but-unread,
+	//      popular for other users on server (who opt in to sharing), etc
+	//    - basically looking at https://dribbble.com/shots/23501959-Goodreads-Redesign-Interface
+	//    - i imagine this could eventually be customizable
+	// - dedicated books/series/libraries pages, the former-two being basically what exists today for explore
+	// - root-level reading timeline
+	// - root-level stats? could also have a home section for stats, with a few aggregates?
+	// - root-level authors, once i revisit proper author tracking via db table(s)
 	return (
 		<RouterProvider basePath={basePath}>
 			<Routes>
@@ -39,6 +50,7 @@ export function AppRouter({ basePath }: AppRouterProps = {}) {
 					<Route path="books/*" element={<BookRouter />} />
 					<Route path="clubs/*" element={<BookClubRouter />} />
 					<Route path="/smart-lists/*" element={<SmartListRouter />} />
+					<Route path="stats" element={<StatsScene />} />
 					<Route path="settings/*" element={<SettingsRouter />} />
 				</Route>
 

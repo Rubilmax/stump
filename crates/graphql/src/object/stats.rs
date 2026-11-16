@@ -1,5 +1,5 @@
 use async_graphql::{Result, SimpleObject};
-use sea_orm::{prelude::*, DatabaseConnection, FromQueryResult};
+use sea_orm::{DatabaseConnection, FromQueryResult, prelude::*};
 
 use crate::utils::db_statement;
 
@@ -35,7 +35,7 @@ impl LibraryStats {
 		for_all_users: bool,
 	) -> Result<Self> {
 		let result = conn
-			.query_one(db_statement(
+			.query_one_raw(db_statement(
 				conn,
 				r"
 				WITH library_media AS (
@@ -151,7 +151,7 @@ impl SeriesStats {
 		for_all_users: bool,
 	) -> Result<Self> {
 		let result = conn
-			.query_one(db_statement(
+			.query_one_raw(db_statement(
 				conn,
 				r"
 				WITH base_counts AS (

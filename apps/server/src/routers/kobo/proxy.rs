@@ -1,12 +1,12 @@
 use std::{sync::LazyLock, time::Duration};
 
 use axum::{
-	body::{to_bytes, Body, Bytes},
+	body::{Body, Bytes, to_bytes},
 	extract::{OriginalUri, Request},
-	http::{header, HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
+	http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri, header},
 	response::Response,
 };
-use reqwest::{redirect::Policy, Client, Url};
+use reqwest::{Client, Url, redirect::Policy};
 use serde_json::{Map, Value};
 use thiserror::Error;
 

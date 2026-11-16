@@ -1,3 +1,171 @@
+<a name="0.1.13"></a>
+## 0.1.13 (2026-11-13)
+
+### Added
+
+- ✨ Persist items-per-page preference in browser ([#1523](https://github.com/stumpapp/stump/issues/1523)) [[71d9481](https://github.com/stumpapp/stump/commit/71d9481e80ef185aabf5be4fc6003882cb2b9f8f)]
+- 👷‍♂️ Publish an arm64 Linux server binary ([#1526](https://github.com/stumpapp/stump/issues/1526)) [[ba96bf5](https://github.com/stumpapp/stump/commit/ba96bf5cbc7d224f0c892501b51a34d7d6af5764)]
+- ✨ Add reading stats page to web app ([#1517](https://github.com/stumpapp/stump/issues/1517)) [[36f4422](https://github.com/stumpapp/stump/commit/36f442237d0931653cac0394f5a7924141ac9395)]
+
+### Changed
+
+- 🚨 Fix cargo fmt [[93eb5e5](https://github.com/stumpapp/stump/commit/93eb5e53c99fe6606bbe8feb401731e443a0959e)]
+- 🚨 Fix desktop import lints [[0a797da](https://github.com/stumpapp/stump/commit/0a797da3159b27848addbb731aa82917710a5679)]
+- 🔧 Add wildcards to tsconfig base paths [[15eaa4b](https://github.com/stumpapp/stump/commit/15eaa4b387bb678ad2fb59c12afea2a5c07b70e1)]
+- 🚨 Fix clippy lints to added fake data structs [[e3ca1be](https://github.com/stumpapp/stump/commit/e3ca1beaccdd4f77cc20a74a690901e67e58f329)]
+- ⬆️ (expo): Upgrade readium ([#1515](https://github.com/stumpapp/stump/issues/1515)) [[7c0da89](https://github.com/stumpapp/stump/commit/7c0da8926f7c433f70fb4bbdbf14fa9721e5868d)]
+- ⬆️ Upgrade Storybook to v10 [[ccb8927](https://github.com/stumpapp/stump/commit/ccb8927563322105fdb602b2eb693fccc496fac3)]
+- ⬆️ Bump concurrently from 8.2.2 to 10.0.6 ([#1449](https://github.com/stumpapp/stump/issues/1449)) [[7bcf6bd](https://github.com/stumpapp/stump/commit/7bcf6bd1ba2f503350b0a581baf75c85d341df99)]
+- ⬆️ Bump babel-loader from 9.2.1 to 10.1.1 ([#1447](https://github.com/stumpapp/stump/issues/1447)) [[2de8fb0](https://github.com/stumpapp/stump/commit/2de8fb0d9ff99bbece0c63193d89328b8c7dcfc7)]
+- ⬆️ Bump fast-xml-parser from 5.10.1 to 5.11.2 ([#1499](https://github.com/stumpapp/stump/issues/1499)) [[8120e81](https://github.com/stumpapp/stump/commit/8120e8162b9b004803954ef0dfbfe09c4a7cde44)]
+- ⬆️ Upgrade vulnerable dependencies ([#1509](https://github.com/stumpapp/stump/issues/1509)) [[c3bc002](https://github.com/stumpapp/stump/commit/c3bc002ebfeb3764606ded59439a90be0c4bd3a2)]
+- ⬆️ (expo): Update to expo SDK 58 ([#1496](https://github.com/stumpapp/stump/issues/1496)) [[d8b61b2](https://github.com/stumpapp/stump/commit/d8b61b21be904ef0707c9f1a9eeae8efbaa81fa2)]
+- ⬆️ Bump cachix/install-nix-action from 31.11.1 to 31.11.3 ([#1501](https://github.com/stumpapp/stump/issues/1501)) [[ed55b5d](https://github.com/stumpapp/stump/commit/ed55b5df81a0c414b5c0400526cca50db4e1f037)]
+- ⬆️ Bump actions/setup-node from 7.0.0 to 7.1.0 ([#1502](https://github.com/stumpapp/stump/issues/1502)) [[4369741](https://github.com/stumpapp/stump/commit/43697412917d19c889d0bad2b81653f8b7b5533b)]
+
+### Removed
+
+- ➖ (expo): Remove deprecated &#x60;react-native-edge-to-edge&#x60; [[7550d4f](https://github.com/stumpapp/stump/commit/7550d4ff2871a185e2e0b2144cff07e4ae6992fb)]
+
+### Fixed
+
+- 🐛 Fix return page after re-authentication does not contain the page number ([#1527](https://github.com/stumpapp/stump/issues/1527)) [[241c7f7](https://github.com/stumpapp/stump/commit/241c7f73044ed65c711f21c0aed3cb82f32e58ce)]
+- 🐛 (expo): Clear local progress if remote was manually cleared ([#1524](https://github.com/stumpapp/stump/issues/1524)) [[01e69fb](https://github.com/stumpapp/stump/commit/01e69fbdfa4efc2d0f18e2aa1de29887e975da39)]
+- 💚 Suppress Zod CVE (from cli dev-tool, it is fine) [[d515cf5](https://github.com/stumpapp/stump/commit/d515cf5fc22871bcbe1ac4f351b860f936f0df52)]
+- 💚 Bump node version for cve_check.yml [[fa7ac6a](https://github.com/stumpapp/stump/commit/fa7ac6afd05a8db73cb7eed712089ef405ee81d1)]
+- 🐛 Fix image loading for EPUBs [[eb969e9](https://github.com/stumpapp/stump/commit/eb969e954452c7146efde586f73c473259b3505a)]
+- 🐛 Fix keep_reading query to properly select metadata [[7b6c897](https://github.com/stumpapp/stump/commit/7b6c897c8f8aea0fe70b288c3f6f8b2de2861dcd)]
+- 🐛 (expo): Preserve custom headers after login dialog and server edits ([#1506](https://github.com/stumpapp/stump/issues/1506)) [[61633fc](https://github.com/stumpapp/stump/commit/61633fc8da5b039a9e0c295454ba0c0f7c1df04e)]
+
+### Security
+
+- 🔒 Enforce book club feature access in gql [[6a5969d](https://github.com/stumpapp/stump/commit/6a5969d70084319c3e1486459db24ebcca7d91fb)]
+
+### Miscellaneous
+
+- 🌐 Update Italian translation [[1c3b1c6](https://github.com/stumpapp/stump/commit/1c3b1c6c8028f3ca787c3ca9d05c62d31f9fb160)]
+- 🔀 Merge pull request [#1531](https://github.com/stumpapp/stump/issues/1531) from stumpapp/weblate-stump-stump [[c4fa226](https://github.com/stumpapp/stump/commit/c4fa22609a2aa187bf47832acfef23358ad5dfa1)]
+- 🌐 Update Dutch translation [[bf28c21](https://github.com/stumpapp/stump/commit/bf28c21b33953749595da1fc5385afbd72c16659)]
+- 🌐 Update Dutch translation [[bdad7b2](https://github.com/stumpapp/stump/commit/bdad7b2330961abb32d4b7f0f97473b4132058b6)]
+- 🌐 Update Italian translation [[71ecdc0](https://github.com/stumpapp/stump/commit/71ecdc04169882ceeffbc7b461e62847f16e7b26)]
+- 🌐 Update French translation [[2b90b40](https://github.com/stumpapp/stump/commit/2b90b408512ae23b1eb42f85e28e2bd76a74f474)]
+- 🌐 Localize OPDS catalog and feed titles ([#1513](https://github.com/stumpapp/stump/issues/1513)) [[9f019db](https://github.com/stumpapp/stump/commit/9f019dbe887561a92f5f7e6390d251183521cb1a)]
+- 🔀 Merge pull request [#1521](https://github.com/stumpapp/stump/issues/1521) from stumpapp/weblate-stump-stump [[04c8cd7](https://github.com/stumpapp/stump/commit/04c8cd765e83f05c1c036d83e54f0b4b818546b8)]
+- 🩹 (expo): Increase touch activate surface for journal input [[b8a573b](https://github.com/stumpapp/stump/commit/b8a573bf05ddd174fc31e82446b86251318cc62b)]
+- 🌐 Update French translation [[10f7989](https://github.com/stumpapp/stump/commit/10f7989b10e163f3c1247d1cc7ffd9c918f253ad)]
+- 🌐 Update German translation [[5ccc374](https://github.com/stumpapp/stump/commit/5ccc3749fa3e705adb22f4057bbbe38992820275)]
+- 🔀 Merge pull request [#1518](https://github.com/stumpapp/stump/issues/1518) from stumpapp/weblate-stump-stump [[2e9fb4f](https://github.com/stumpapp/stump/commit/2e9fb4fe4655cfa3e923ac8d4424e76371f9ad97)]
+- 🚧 lock notifier API until I actually build out feature [[f7836af](https://github.com/stumpapp/stump/commit/f7836afe59de7c1cd80321be17e6efde57dddeeb)]
+- 🔀 Merge pull request [#1514](https://github.com/stumpapp/stump/issues/1514) from stumpapp/weblate-stump-stump [[4c60fa7](https://github.com/stumpapp/stump/commit/4c60fa75c732bb956c8628fe365c12f7c8e8a5d7)]
+- 🌐 Update German translation [[3cbba6b](https://github.com/stumpapp/stump/commit/3cbba6b45b8bf741fc112027c96a2628a3321d16)]
+- 🔀 Merge remote-tracking branch &#x27;origin/main&#x27; into nightly [[2c7f8af](https://github.com/stumpapp/stump/commit/2c7f8afe228c08f7aeceea6a0eaaa904814dc4b6)]
+
+
+<a name="0.1.12"></a>
+## 0.1.12 (2026-10-31)
+
+### Added
+
+- ✨ Add scanAllLibraries mutation [[bcda78d](https://github.com/stumpapp/stump/commit/bcda78db77f588721f632945521d2bb87f9adc95)]
+- ✨ (expo): Basic reading stats ([#1483](https://github.com/stumpapp/stump/issues/1483)) [[fd33122](https://github.com/stumpapp/stump/commit/fd33122a87ad195a5776ad0a64459e71c348f8f1)]
+
+### Changed
+
+- 💄 Fix light-mode styles on image reader controls [[76fd453](https://github.com/stumpapp/stump/commit/76fd4531f6b9a3bee1926dc3ea0391392553889e)]
+- 💄 (expo): Fix alignment of session event timestamps [[566b24b](https://github.com/stumpapp/stump/commit/566b24b4f7391875c9fff8ce24953fa7b50c5d01)]
+- 💄 Align job overlay with toast styles [[009b87a](https://github.com/stumpapp/stump/commit/009b87a67d81a4f257c9e40fb56e61ed5870cf2c)]
+- 🗃️ Add migration to drop topbar and related preferences [[ec0fb23](https://github.com/stumpapp/stump/commit/ec0fb233c13ea24dc555bbca6e1e109292112da3)]
+- ⬆️ Upgrade sea orm to v2 ([#1475](https://github.com/stumpapp/stump/issues/1475)) [[67dbed0](https://github.com/stumpapp/stump/commit/67dbed05546801f109e6339af6da7aa818b171d4)]
+
+### Fixed
+
+- 🐛 Fix path normalization for EPUB resources on Windows ([#1437](https://github.com/stumpapp/stump/issues/1437)) [[7997b22](https://github.com/stumpapp/stump/commit/7997b225bb24012564c0f6db695ebca5a0948e5d)]
+- 🐛 Fix empty public_url breaking OIDC auth [[906c1a4](https://github.com/stumpapp/stump/commit/906c1a497f06caa1fcea264ab7c81b8ea48dd07f)]
+- 🐛 Hide unusable cover options in thumbnail selectors ([#1491](https://github.com/stumpapp/stump/issues/1491)) [[9f5452b](https://github.com/stumpapp/stump/commit/9f5452bdb2737dd25e6e2f2c596bb4a36f023712)]
+- 🐛 Fix links to library router not respecting default view [[db6521f](https://github.com/stumpapp/stump/commit/db6521ffe88a99bc8e2dd01788f1ff5c236708e4)]
+- 🐛 (expo): Fix small collection of timeline bugs ([#1485](https://github.com/stumpapp/stump/issues/1485)) [[f436c22](https://github.com/stumpapp/stump/commit/f436c225922043d42338dab98d7241aab1200f55)]
+- 🐛 Set user on KOReader reading device upsert ([#1481](https://github.com/stumpapp/stump/issues/1481)) [[d7399df](https://github.com/stumpapp/stump/commit/d7399dfc21d9107f2efdd6a86501e49a3f0f38bf)]
+
+### Security
+
+- 🔒 Validate image uploads by content and enforce valid image responses [[1fa47aa](https://github.com/stumpapp/stump/commit/1fa47aaf5d9ab5647dac3c71844ffeb187a64eae)]
+- 🔒 Fix upload path traversal in book/series upload mutations [[398c911](https://github.com/stumpapp/stump/commit/398c91168c9030fe3307bc4bd2ba1e6a20d79c70)]
+
+### Miscellaneous
+
+- 🧑‍💻 Monorepo cleanup and consolidation ([#1494](https://github.com/stumpapp/stump/issues/1494)) [[cfc140e](https://github.com/stumpapp/stump/commit/cfc140eb5a5ea8c4ea9ae0eaf44c59cd50f34666)]
+- 🌐 Update Simplified Chinese translations ([#1488](https://github.com/stumpapp/stump/issues/1488)) [[ba8db1b](https://github.com/stumpapp/stump/commit/ba8db1b4e4b733f40f7d35b912cdc370006410f4)]
+- 🩹 Fix annoying stutter navigating between series [[6b6581f](https://github.com/stumpapp/stump/commit/6b6581f0d9495480501cf8497f6afa010ac61e96)]
+- 🩹 (expo): Fix my activity tint background [[ad0989e](https://github.com/stumpapp/stump/commit/ad0989eecfa18da41767268aee4daf6411106e1e)]
+- 🔀 Merge remote-tracking branch &#x27;origin/nightly&#x27; into web-polish [[0b323eb](https://github.com/stumpapp/stump/commit/0b323eb3a912c3dd1d7ea72b96c9b2b580b8ce18)]
+- 📝 Update documentation [[0a747f6](https://github.com/stumpapp/stump/commit/0a747f63d4d0f4db0ed66a593fd76d5f1e89e54b)]
+- 🌐 Reorganize existing translations to new homes [[2d0df54](https://github.com/stumpapp/stump/commit/2d0df54dd0e91c7ec7bd1ccf64dfb9fa8eb6cbd2)]
+- 🚧 Update create emailer layout, align dialog styles, fix lints, fix tests [[0b71f4f](https://github.com/stumpapp/stump/commit/0b71f4f7fc23b5cca018a4254c5439314b5b513b)]
+- 🔀 Merge remote-tracking branch &#x27;origin/nightly&#x27; into web-polish [[476ebb2](https://github.com/stumpapp/stump/commit/476ebb2caf3b2d4d9b86b0bd1a10b203cbadf2d0)]
+- 🚧 refactor book overview and many misc changes while moving through ui [[e62242f](https://github.com/stumpapp/stump/commit/e62242f196cc9a040ce6d6925e46a47dc15664c9)]
+- 🚧 refactor sidebar and page layout components to more consistent system [[47bf507](https://github.com/stumpapp/stump/commit/47bf507fb5705f89bee031df2b226b891c6400c2)]
+- 🚧 refactor stepped forms, card-ify chunk of library settings [[1097ebf](https://github.com/stumpapp/stump/commit/1097ebf76a4cd6cd419c35151848c4e681762a8c)]
+- 🔀 Merge remote-tracking branch &#x27;origin/main&#x27; into nightly [[5051ccc](https://github.com/stumpapp/stump/commit/5051ccc362d9aa41236f996bd6034a6baea811cb)]
+
+
+<a name="0.1.11"></a>
+## 0.1.11 (2026-10-18)
+
+### Added
+
+- ✨ Reading timeline improvements and basic journal support ([#1472](https://github.com/stumpapp/stump/issues/1472)) [[87585d4](https://github.com/stumpapp/stump/commit/87585d434f4b4046509a3d67ed8bf275c86551c1)]
+- ✨ (expo) Add a persistent System theme option ([#1458](https://github.com/stumpapp/stump/issues/1458)) [[6dbd3b2](https://github.com/stumpapp/stump/commit/6dbd3b29160ccc0f8c876939e69b8964528c85e5)]
+- ✨ Reading timeline foundations ([#1460](https://github.com/stumpapp/stump/issues/1460)) [[b988179](https://github.com/stumpapp/stump/commit/b988179fa50065bcc5fdc10a016d1739d25df5df)]
+
+### Changed
+
+- ♻️ Improve series position ordering of books ([#1473](https://github.com/stumpapp/stump/issues/1473)) [[dc8c58a](https://github.com/stumpapp/stump/commit/dc8c58ab0a16e043b59f1e938cc67a616ac00689)]
+- 🔧 Remove vscode configs [[a09cfcb](https://github.com/stumpapp/stump/commit/a09cfcb728b578b399cae280a9e9b567a1203772)]
+- ♻️ Reorganize localization ([#1469](https://github.com/stumpapp/stump/issues/1469)) [[9f581e1](https://github.com/stumpapp/stump/commit/9f581e191d42a61d61d28b93e283b4dc19fec515)]
+- ♻️ Upgrade to OPDS v2 stable progression API ([#1440](https://github.com/stumpapp/stump/issues/1440)) [[7ddbed5](https://github.com/stumpapp/stump/commit/7ddbed522d95ceb17368fde95e4494b40b07ecc0)]
+- ⬆️ Fix  vulnerability [[c78e9c4](https://github.com/stumpapp/stump/commit/c78e9c4a53c94a6267ab0fcbf0ff343fa6553982)]
+- ⬆️ Bump actions/download-artifact from 4 to 8 ([#1451](https://github.com/stumpapp/stump/issues/1451)) [[a5332b0](https://github.com/stumpapp/stump/commit/a5332b03f01fa8c36ad29cd062d7fddaf61a74eb)]
+- ⬆️ Bump @tanstack/react-virtual from 3.10.8 to 3.14.13 ([#1450](https://github.com/stumpapp/stump/issues/1450)) [[eb718ac](https://github.com/stumpapp/stump/commit/eb718ac1e373c79f7019ce31d0ed6f096c2a2cd9)]
+- ⬆️ Bump actions/checkout from 3 to 7 ([#1452](https://github.com/stumpapp/stump/issues/1452)) [[fca73bb](https://github.com/stumpapp/stump/commit/fca73bbc9c3212439cd011c150f8bd030e7c1691)]
+- ⬆️ Bump react-native-web from 0.21.2 to 0.21.3 ([#1445](https://github.com/stumpapp/stump/issues/1445)) [[7816457](https://github.com/stumpapp/stump/commit/781645728a130ec52845d9857fcaa04f7b618374)]
+- ♻️ (expo) Add &#x60;Alert&#x60; stub with prettier jetpack compose dialog for Android ([#1439](https://github.com/stumpapp/stump/issues/1439)) [[d3ce23b](https://github.com/stumpapp/stump/commit/d3ce23b6788d3f8b6344d8bb2fbcc2068b91a52f)]
+
+### Fixed
+
+- 🐛 Detect and delete duplicate media during oneshot conversion ([#1477](https://github.com/stumpapp/stump/issues/1477)) [[c16d207](https://github.com/stumpapp/stump/commit/c16d207c1d0b3425bb99db1f3ad326a06b2efee2)]
+- 🐛 Return 404 for EPUBs without a cover image ([#1471](https://github.com/stumpapp/stump/issues/1471)) [[d153ca7](https://github.com/stumpapp/stump/commit/d153ca73a21db4df42204faa9f9e0e05fbcadc32)]
+- 🐛 Delete stored mtimes after library deletion ([#1467](https://github.com/stumpapp/stump/issues/1467)) [[a262043](https://github.com/stumpapp/stump/commit/a2620430d631dee343d5cd4b883589e20e560fcc)]
+- 🐛 Fix incomplete OPDS 2.0 catalog pagination ([#1444](https://github.com/stumpapp/stump/issues/1444)) [[daa509f](https://github.com/stumpapp/stump/commit/daa509fbb29e5ec5ee1bb368ec1979319759b34a)]
+- 🐛 Respect spine &#x60;page-progression-direction&#x60; in Readium manifests ([#1438](https://github.com/stumpapp/stump/issues/1438)) [[ddb8788](https://github.com/stumpapp/stump/commit/ddb8788679d5e108b1f4a34ec364a36d5c619cea)]
+- 🐛 Ignore case for client-side extension matching [[ecdcaf7](https://github.com/stumpapp/stump/commit/ecdcaf769754e4d3a9c98b99880bb08b90b8d6ea)]
+- 🐛 (expo) Fix importing files shared via content:// URIs ([#1416](https://github.com/stumpapp/stump/issues/1416)) [[1668da2](https://github.com/stumpapp/stump/commit/1668da2eff6ac7126f49c65b87bba1685998d55a)]
+
+### Security
+
+- 🔒 patch CVEs and add audit allowlist support [[c637fa2](https://github.com/stumpapp/stump/commit/c637fa2ea45c34e532b8822d8fa0e11c9f011ccf)]
+
+### Miscellaneous
+
+- 🩹 Print more meaningful message for config parse failures ([#1468](https://github.com/stumpapp/stump/issues/1468)) [[9a06681](https://github.com/stumpapp/stump/commit/9a0668105478c3a75bbe5071e24ac4607da3c8b6)]
+- 🩹 (expo): Fix session detail thumbnail size for Android [[1bc7e8d](https://github.com/stumpapp/stump/commit/1bc7e8d57dd42cb16519a529f72e7fa79d2acada)]
+- 🌐 Update German translation [[fb35c7b](https://github.com/stumpapp/stump/commit/fb35c7ba1837c0622f91fcf283ed3275f6f5cf46)]
+- 🌐 Update Spanish translation [[d1516b5](https://github.com/stumpapp/stump/commit/d1516b5f8a58893d93865e500e7eb50691c72ae6)]
+- 🔀 Merge pull request [#1459](https://github.com/stumpapp/stump/issues/1459) from stumpapp/weblate-stump-stump [[4213ad6](https://github.com/stumpapp/stump/commit/4213ad6bc3572c6ba0df4b58cf894855ba83353a)]
+- 🌐 Update Korean translations ([#1456](https://github.com/stumpapp/stump/issues/1456)) [[7752c39](https://github.com/stumpapp/stump/commit/7752c393f3125c479affe2dd8588d6254fd1ad89)]
+- 🌐 Update Chinese (Traditional Han script) translation [[89f4b3d](https://github.com/stumpapp/stump/commit/89f4b3d87a0092b9554e75e0ab87653a462e2fd3)]
+- 🌐 Update Italian translation [[f7f057f](https://github.com/stumpapp/stump/commit/f7f057fb8973e633125b63dcd6626c5022bc4fc1)]
+- 🌐 Update Swedish translation [[de83d59](https://github.com/stumpapp/stump/commit/de83d5982679d3d964835deede1bf150f83abb07)]
+- 🌐 Add Slovak translation [[9db27ab](https://github.com/stumpapp/stump/commit/9db27abec1bdd68ad9f181c6612dab278a7cad1e)]
+- 🌐 Update Chinese (Simplified Han script) translation [[cf7b2df](https://github.com/stumpapp/stump/commit/cf7b2df883d9eaa3ab6cdbb208c3e7810bd3caf1)]
+- 🌐 Update German translation [[93af210](https://github.com/stumpapp/stump/commit/93af210160001771216fd42209f32474290efda8)]
+- 🩹 Extend allowlist for additional false-positive vulns [[e819251](https://github.com/stumpapp/stump/commit/e81925173313eeebd90b6e85e66090d2f2b7995b)]
+- 🔀 Merge pull request [#1433](https://github.com/stumpapp/stump/issues/1433) from stumpapp/weblate-stump-stump [[18df53f](https://github.com/stumpapp/stump/commit/18df53f9bc68cc7544d6d04fb2307b9ffd85e2ae)]
+- 🩹 (expo): Ensure test URL button loader fits and has correct colors [[a7912a8](https://github.com/stumpapp/stump/commit/a7912a8870876e6eeaee4ea8c5cb29a979692702)]
+- 🩹 (expo) Fix brightness sync for Android [[fdb8749](https://github.com/stumpapp/stump/commit/fdb874909b178051d904af7e973a27ca9296d43e)]
+- 🩹 (expo) Fix external link taps for Android ebooks [[e700d3e](https://github.com/stumpapp/stump/commit/e700d3e6b7593086cc6bb36ee3099c0c7d5a2d9f)]
+- 🩹 (expo) Set &#x60;allowHardware&#x60; to false to fix OIDC crash [[0c3b1e9](https://github.com/stumpapp/stump/commit/0c3b1e98657976442a50098cb2356194a37510c7)]
+
+
 <a name="0.1.10"></a>
 ## 0.1.10 (2026-09-21)
 

@@ -18,6 +18,7 @@ import {
 	useFilterScene,
 } from '@/components/filters'
 import {
+	SERIES_POSITION_ORDERING,
 	useMediaURLOrderBy,
 	useSearchMediaFilter,
 	useURLKeywordSearch,
@@ -30,8 +31,8 @@ import useIsInView from '@/hooks/useIsInView'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useBooksLayout } from '@/stores/layout'
 
-import { useSeriesContext } from '../../context'
-import { getQueryKey, query, usePrefetchSeriesBooks } from './queries'
+import { useSeriesContext } from '../../../../components/series/context'
+import { getQueryKey, query, usePrefetchSeriesBooks } from '../../../../components/series/queries'
 
 export default function SeriesBooksSceneContainer() {
 	return (
@@ -44,25 +45,41 @@ export default function SeriesBooksSceneContainer() {
 function SeriesBooksScene() {
 	const { series } = useSeriesContext()
 	const layoutKey = `library-${series.library.id}-seriesBooks`
-	const { layoutMode, setLayout, columns, setColumns, persistedOrdering, setPersistedOrdering } =
-		useBooksLayout(
-			layoutKey,
-			useShallow((state) => ({
-				columns: state.columns,
-				layoutMode: state.layout,
-				persistedOrdering: state.ordering,
-				setColumns: state.setColumns,
-				setLayout: state.setLayout,
-				setPersistedOrdering: state.setOrdering,
-			})),
-		)
+	const {
+		layoutMode,
+		setLayout,
+		columns,
+		setColumns,
+		persistedOrdering,
+		setPersistedOrdering,
+		persistedPageSize,
+		setPersistedPageSize,
+	} = useBooksLayout(
+		layoutKey,
+		useShallow((state) => ({
+			columns: state.columns,
+			layoutMode: state.layout,
+			persistedOrdering: state.ordering,
+			persistedPageSize: state.pageSize,
+			setColumns: state.setColumns,
+			setLayout: state.setLayout,
+			setPersistedOrdering: state.setOrdering,
+			setPersistedPageSize: state.setPageSize,
+		})),
+	)
 	const {
 		filters: mediaFilters,
 		ordering,
 		pagination: { page, pageSize: pageSizeMaybeUndefined },
 		setPage,
 		...rest
-	} = useFilterScene({ persistedOrdering, setPersistedOrdering })
+	} = useFilterScene({
+		persistedOrdering,
+		setPersistedOrdering,
+		persistedPageSize,
+		setPersistedPageSize,
+		defaultOrdering: SERIES_POSITION_ORDERING,
+	})
 	const filters = mediaFilters as MediaFilterInput
 	const pageSize = pageSizeMaybeUndefined || 20 // Fallback to 20 if pageSize is undefined, this should never happen since we set a default in the useFilterScene hook
 	const orderBy = useMediaURLOrderBy(ordering)

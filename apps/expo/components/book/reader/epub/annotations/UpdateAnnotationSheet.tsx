@@ -1,11 +1,13 @@
 import { TrueSheet } from '@lodev09/react-native-true-sheet'
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react'
-import { Alert, View } from 'react-native'
+import { View } from 'react-native'
 
 import SheetWithHeader from '~/components/SheetWithHeader'
 import { Button, Text } from '~/components/ui'
+import { SystemAlert } from '~/components/ui/system-alert'
 import { useColors } from '~/lib/constants'
 import { Decoration } from '~/modules/readium'
+import { useDerivedColorPalette } from '~/providers/DerivedColorPalette'
 
 import AnnotatedText from './AnnotatedText'
 import AnnotationInput from './AnnotationInput'
@@ -26,6 +28,8 @@ const UpdateAnnotationSheet = forwardRef<UpdateAnnotationSheetRef, Props>(
 		const [decoration, setDecoration] = useState<Decoration | null>(null)
 		const [annotation, setAnnotation] = useState('')
 		const [isDirty, setIsDirty] = useState(false)
+
+		const { imageMetadata } = useDerivedColorPalette()
 
 		const colors = useColors()
 
@@ -51,7 +55,7 @@ const UpdateAnnotationSheet = forwardRef<UpdateAnnotationSheetRef, Props>(
 		const handleDelete = useCallback(() => {
 			if (!decoration) return
 
-			Alert.alert('Delete Highlight', 'Are you sure you want to delete this annotation?', [
+			SystemAlert.alert('Delete Highlight', 'Are you sure you want to delete this annotation?', [
 				{ text: 'Cancel', style: 'cancel' },
 				{
 					text: 'Delete',
@@ -78,12 +82,12 @@ const UpdateAnnotationSheet = forwardRef<UpdateAnnotationSheetRef, Props>(
 			<SheetWithHeader
 				ref={sheetRef}
 				detents={[0.5, 1]}
-				scrollable
 				backgroundColor={colors.sheet.background}
 				onDidDismiss={handleDismiss}
 				headerLabel="Edit Annotation"
 				headerLeftButton={{ type: 'dismiss' }}
 				headerRightButton={{ type: 'check', onPress: handleSaveAnnotation }}
+				backgroundColorData={imageMetadata}
 			>
 				<View className="gap-4">
 					{highlightedText && <AnnotatedText text={highlightedText} />}
@@ -97,7 +101,12 @@ const UpdateAnnotationSheet = forwardRef<UpdateAnnotationSheetRef, Props>(
 					/>
 
 					{/* TODO: Probably look better as joined button with primary action, however too lazy for that now */}
-					<Button variant="destructive" onPress={handleDelete} roundness="full">
+					<Button
+						variant="destructive"
+						onPress={handleDelete}
+						roundness="full"
+						className="border-black/5 dark:border-white/5"
+					>
 						<Text>Delete</Text>
 					</Button>
 				</View>

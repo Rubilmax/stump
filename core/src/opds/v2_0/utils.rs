@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use sea_orm::{prelude::*, DatabaseConnection, FromQueryResult, Value};
+use sea_orm::{DatabaseConnection, FromQueryResult, Value, prelude::*};
 use serde::{Deserialize, Serialize};
 
 use crate::CoreResult;
@@ -74,7 +74,7 @@ impl OPDSV2QueryExt for DatabaseConnection {
 		values.extend(book_ids.into_iter().map(Value::from));
 
 		let result: Vec<QueryResult> = self
-			.query_all(sea_orm::Statement::from_sql_and_values(
+			.query_all_raw(sea_orm::Statement::from_sql_and_values(
 				backend, sql, values,
 			))
 			.await?;

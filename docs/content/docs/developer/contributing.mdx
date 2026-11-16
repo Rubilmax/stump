@@ -24,7 +24,7 @@ If you're completely new to rust and/or web development, I put together a small 
 	[Rosetta](https://support.apple.com/en-us/>HT211861).
 </Callout>
 
-You need to install [yarn](https://yarnpkg.com), [rust](https://www.rust-lang.org/tools/install), and [Node.js 22.12.0 or newer](https://nodejs.org/en/download/). Additionally, if you want to run any of the dev scripts on the rust side of things, you'll need to install [bacon](https://crates.io/crates/bacon). Afterwards, run the following:
+You need to install [yarn](https://yarnpkg.com), [rust](https://www.rust-lang.org/tools/install), and [Node.js 24.3+ on the 24.x line, or Node.js 26+](https://nodejs.org/en/download/). Afterwards, run the following:
 
 ```bash
 yarn run setup
@@ -113,7 +113,7 @@ I also want to point out that this repository uses 4 tab spaces for indentation.
 Stump has a custom component library used throughout the `browser` package (the web UI and desktop app). This library can be found at `packages/components`, and was developed with Storybook in mind. For getting started building out designs and components in Stump, I highly recommend going through the stories available in the Storybook UI:
 
 ```bash
-yarn storybook
+yarn workspace @stump/components storybook
 ```
 
 This will give you a good idea of what components are available and how they can be used.

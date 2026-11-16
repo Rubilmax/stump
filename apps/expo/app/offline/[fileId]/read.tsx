@@ -5,7 +5,6 @@ import { useMutation } from '@tanstack/react-query'
 import { and, eq, isNull } from 'drizzle-orm'
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite'
 import { useKeepAwake } from 'expo-keep-awake'
-import * as NavigationBar from 'expo-navigation-bar'
 import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import urlJoin from 'url-join'
@@ -132,7 +131,7 @@ function Reader({ record, bookmarks, annotations }: ReaderProps) {
 			? decodeURIComponent(cacheDir.replace('file://', ''))
 			: cacheDir
 
-		await ensureDirectoryExists(cacheDir)
+		ensureDirectoryExists(cacheDir)
 
 		try {
 			const { success } = await StumpStreamer.initializeBook(book.id, filePath, cacheDirPath)
@@ -169,7 +168,6 @@ function Reader({ record, bookmarks, annotations }: ReaderProps) {
 				}
 			}
 		},
-		// eslint-disable-next-line react-compiler/react-compiler
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[isStreamerInitialized],
 	)
@@ -351,14 +349,11 @@ function Reader({ record, bookmarks, annotations }: ReaderProps) {
 	useEffect(
 		() => {
 			setIsReading(true)
-			NavigationBar.setVisibilityAsync('hidden')
 			return () => {
 				setIsReading(false)
 				setShowControls(false)
-				NavigationBar.setVisibilityAsync('visible')
 			}
 		},
-		// eslint-disable-next-line react-compiler/react-compiler
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[],
 	)

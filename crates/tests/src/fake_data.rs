@@ -1,10 +1,17 @@
 use chrono::Utc;
 use models::entity::user::{AuthUser, LoginUser};
-use models::entity::{library, library_config, media, reading_session, series, user};
-use models::shared::enums::{FileStatus, ReadingStatus};
+use models::entity::{
+	book_club, book_club_book, book_club_discussion, book_club_member, library,
+	library_config, media, media_metadata, reading_session, series, user,
+};
+use models::shared::book_club::BookClubMemberRoleSpec;
+use models::shared::{
+	book_club::BookClubMemberRole,
+	enums::{FileStatus, ReadingStatus},
+};
 use rand::distr::SampleString;
 use rust_decimal::prelude::FromPrimitive;
-use sea_orm::{prelude::*, ActiveModelTrait, ActiveValue, DbConn};
+use sea_orm::{ActiveModelTrait, ActiveValue, DbConn, prelude::*};
 use uuid::Uuid;
 
 // note that None here means "use some default", not necessarily "set the value to None".
@@ -21,6 +28,41 @@ pub struct Media {
 	pub modified_at: Option<DateTimeWithTimeZone>,
 	pub deleted_at: Option<DateTimeWithTimeZone>,
 	pub pages: Option<i32>,
+	/// defaults to `<name>.<extension>`
+	pub path: Option<String>,
+	pub is_oneshot: bool,
+
+	pub metadata: Option<MediaMetadata>,
+}
+
+#[derive(Default, Clone)]
+pub struct MediaMetadata {
+	pub number: Option<f64>,
+	pub title: Option<String>,
+	pub media_id: Option<String>,
+}
+
+impl MediaMetadata {
+	pub async fn insert(&self, db: &DbConn) -> media_metadata::Model {
+		let media_id = self
+			.media_id
+			.clone()
+			.unwrap_or_else(|| Uuid::new_v4().to_string());
+
+		let model = media_metadata::ActiveModel {
+			media_id: sea_orm::Set(Some(media_id)),
+			title: sea_orm::Set(self.title.clone()),
+			number: self.number.map_or(ActiveValue::NotSet, |num| {
+				sea_orm::Set(Some(Decimal::try_from(num).expect("invalid number")))
+			}),
+			..Default::default()
+		}
+		.insert(db)
+		.await
+		.expect("could not insert media metadata");
+
+		model
+	}
 }
 
 impl Media {
@@ -35,6 +77,7 @@ impl Media {
 			.clone()
 			.unwrap_or_else(|| format!("Test Book {id}"));
 		let extension = self.extension.clone().unwrap_or("epub".to_string());
+		let metadata = self.metadata.clone();
 
 		let model = media::ActiveModel {
 			series_id: ActiveValue::Set(Some(self.series_id.clone())),
@@ -49,7 +92,12 @@ impl Media {
 			deleted_at: self
 				.deleted_at
 				.map_or(ActiveValue::default(), |t| ActiveValue::Set(Some(t))),
-			path: sea_orm::Set(format!("{name}.{extension}").to_string()),
+			path: sea_orm::Set(
+				self.path
+					.clone()
+					.unwrap_or_else(|| format!("{name}.{extension}")),
+			),
+			is_oneshot: sea_orm::Set(self.is_oneshot),
 			status: sea_orm::Set(FileStatus::Ready),
 			..Default::default()
 		};
@@ -57,14 +105,25 @@ impl Media {
 		let insert_result = model.insert(db).await.expect("could not insert media");
 
 		// "created_at" is overridden by the ActiveModelBehavior, so we need to update it explicitly.
-		match self.created_at {
+		let book = match self.created_at {
 			Some(t) => {
 				let mut model: media::ActiveModel = insert_result.into();
 				model.created_at = ActiveValue::Set(t);
 				model.update(db).await.expect("could not update media")
 			},
 			None => insert_result,
+		};
+
+		if let Some(metadata) = metadata {
+			let _meta_model = MediaMetadata {
+				media_id: Some(book.id.clone()),
+				..metadata
+			}
+			.insert(db)
+			.await;
 		}
+
+		book
 	}
 }
 
@@ -155,6 +214,7 @@ pub struct Series {
 	pub name: Option<String>,
 	pub path: Option<String>,
 	pub library_id: Option<String>,
+	pub is_oneshot: bool,
 }
 
 impl Series {
@@ -174,6 +234,7 @@ impl Series {
 			id: sea_orm::Set(id.clone()),
 			name: sea_orm::Set(name),
 			path: sea_orm::Set(path),
+			is_oneshot: sea_orm::Set(self.is_oneshot),
 			library_id: match &self.library_id {
 				Some(lib_id) => sea_orm::Set(Some(lib_id.clone())),
 				None => sea_orm::NotSet,
@@ -238,5 +299,155 @@ impl ReadingSession {
 			},
 			None => insert_result,
 		}
+	}
+}
+
+#[derive(Default)]
+pub struct BookClub {
+	pub id: Option<String>,
+	pub name: Option<String>,
+	pub slug: Option<String>,
+	pub description: Option<String>,
+	pub is_private: bool,
+	pub member_role_spec: Option<BookClubMemberRoleSpec>,
+	pub emoji: Option<String>,
+}
+
+impl BookClub {
+	pub async fn insert(&self, db: &DbConn) -> book_club::Model {
+		let id = self
+			.id
+			.clone()
+			.unwrap_or_else(|| Uuid::new_v4().to_string());
+		let name = self.name.clone().unwrap_or_else(|| "Fake Club".to_string());
+		let slug = self
+			.slug
+			.clone()
+			.unwrap_or_else(|| format!("{}-{id}", name.to_lowercase().replace(' ', "-")));
+
+		book_club::ActiveModel {
+			id: ActiveValue::Set(id),
+			name: ActiveValue::Set(name),
+			slug: ActiveValue::Set(slug),
+			description: ActiveValue::Set(self.description.clone()),
+			is_private: ActiveValue::Set(self.is_private),
+			member_role_spec: ActiveValue::Set(self.member_role_spec.clone()),
+			created_at: ActiveValue::Set(Utc::now().into()),
+			emoji: ActiveValue::Set(self.emoji.clone()),
+		}
+		.insert(db)
+		.await
+		.expect("could not insert book club")
+	}
+}
+
+#[derive(Default)]
+pub struct BookClubMember {
+	pub id: Option<String>,
+	pub display_name: Option<String>,
+	pub bio: Option<String>,
+	pub hide_progress: bool,
+	pub role: BookClubMemberRole,
+	pub joined_at: Option<DateTimeWithTimeZone>,
+	pub user_id: String,
+	pub book_club_id: String,
+}
+
+impl BookClubMember {
+	pub async fn insert(&self, db: &DbConn) -> book_club_member::Model {
+		let id = self
+			.id
+			.clone()
+			.unwrap_or_else(|| Uuid::new_v4().to_string());
+
+		book_club_member::ActiveModel {
+			id: ActiveValue::Set(id),
+			display_name: ActiveValue::Set(self.display_name.clone()),
+			bio: ActiveValue::Set(self.bio.clone()),
+			hide_progress: ActiveValue::Set(self.hide_progress),
+			role: ActiveValue::Set(self.role),
+			joined_at: ActiveValue::Set(
+				self.joined_at.unwrap_or_else(|| Utc::now().into()),
+			),
+			user_id: ActiveValue::Set(self.user_id.clone()),
+			book_club_id: ActiveValue::Set(self.book_club_id.clone()),
+		}
+		.insert(db)
+		.await
+		.expect("could not insert book club member")
+	}
+}
+
+#[derive(Default)]
+pub struct BookClubBook {
+	pub id: Option<String>,
+	pub position: i32,
+	pub completed_at: Option<DateTimeWithTimeZone>,
+	pub title: Option<String>,
+	pub author: Option<String>,
+	pub url: Option<String>,
+	pub image_url: Option<String>,
+	pub book_entity_id: Option<String>,
+	pub book_club_id: String,
+}
+
+impl BookClubBook {
+	pub async fn insert(&self, db: &DbConn) -> book_club_book::Model {
+		let id = self
+			.id
+			.clone()
+			.unwrap_or_else(|| Uuid::new_v4().to_string());
+
+		book_club_book::ActiveModel {
+			id: ActiveValue::Set(id),
+			position: ActiveValue::Set(self.position),
+			completed_at: ActiveValue::Set(self.completed_at),
+			title: ActiveValue::Set(self.title.clone()),
+			author: ActiveValue::Set(self.author.clone()),
+			url: ActiveValue::Set(self.url.clone()),
+			image_url: ActiveValue::Set(self.image_url.clone()),
+			book_entity_id: ActiveValue::Set(self.book_entity_id.clone()),
+			book_club_id: ActiveValue::Set(self.book_club_id.clone()),
+			..Default::default()
+		}
+		.insert(db)
+		.await
+		.expect("could not insert book club book")
+	}
+}
+
+#[derive(Default)]
+pub struct BookClubDiscussion {
+	pub id: Option<String>,
+	pub is_locked: bool,
+	pub is_archived: bool,
+	pub book_club_book_id: Option<String>,
+	pub title: Option<String>,
+	pub emoji: Option<String>,
+	pub is_pinned: bool,
+	pub book_club_id: String,
+}
+
+impl BookClubDiscussion {
+	pub async fn insert(&self, db: &DbConn) -> book_club_discussion::Model {
+		let id = self
+			.id
+			.clone()
+			.unwrap_or_else(|| Uuid::new_v4().to_string());
+
+		book_club_discussion::ActiveModel {
+			id: ActiveValue::Set(id),
+			is_locked: ActiveValue::Set(self.is_locked),
+			is_archived: ActiveValue::Set(self.is_archived),
+			book_club_book_id: ActiveValue::Set(self.book_club_book_id.clone()),
+			title: ActiveValue::Set(self.title.clone()),
+			emoji: ActiveValue::Set(self.emoji.clone()),
+			is_pinned: ActiveValue::Set(self.is_pinned),
+			created_at: ActiveValue::Set(Utc::now().into()),
+			book_club_id: ActiveValue::Set(self.book_club_id.clone()),
+		}
+		.insert(db)
+		.await
+		.expect("could not insert book club discussion")
 	}
 }

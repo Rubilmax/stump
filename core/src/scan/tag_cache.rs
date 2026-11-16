@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use models::entity::tag;
-use sea_orm::{prelude::*, Iterable, Set};
+use sea_orm::{Iterable, Set, prelude::*};
 
 use crate::{
 	database::{self, SQLITE_BIND_LIMIT},
@@ -51,7 +51,7 @@ impl TagCache {
 			let batch_size = database::get_insert_batch_size(tag_cols);
 			for chunk in missing.chunks(batch_size) {
 				let inserted = tag::Entity::insert_many(chunk.to_vec())
-					.exec_with_returning_many(conn)
+					.exec_with_returning(conn)
 					.await
 					.map_err(CoreError::from)?;
 

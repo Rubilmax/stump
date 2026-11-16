@@ -1,12 +1,12 @@
-use async_graphql::{Context, Object, Result, ID};
+use async_graphql::{Context, ID, Object, Result};
 use models::{
 	entity::{reading_session, user, user_login_activity},
 	shared::enums::{ReadingStatus, UserPermission},
 };
 use sea_orm::{
+	ExprTrait, QueryOrder, QuerySelect,
 	prelude::*,
 	sea_query::{Alias, Expr},
-	QueryOrder, QuerySelect,
 };
 
 use crate::{
@@ -57,7 +57,7 @@ impl UserQuery {
 		take: Option<i64>,
 	) -> Result<Vec<User>> {
 		let conn = ctx.data::<CoreContext>()?.conn.as_ref();
-		let limit = take.unwrap_or(10).max(1);
+		let limit = Ord::max(take.unwrap_or(10), 1);
 		let newer_exists = reading_session::Entity::newer_session_exists_subquery();
 
 		let users_with_counts = user::Entity::find()

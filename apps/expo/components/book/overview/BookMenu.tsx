@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native'
 import { useGraphQLMutation } from '@stump/client'
 import {
 	BookByIdQuery,
@@ -12,10 +13,11 @@ import { and, eq } from 'drizzle-orm'
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite'
 import { Stack, useNavigation, useRouter } from 'expo-router'
 import { useCallback, useLayoutEffect } from 'react'
-import { Alert, Platform } from 'react-native'
+import { Platform } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { db, downloadedFiles } from '~/db'
+import { SystemAlert } from '~/components/ui/system-alert'
+import { db, downloadedFiles, readProgress } from '~/db'
 import { useDownload, useTranslate } from '~/lib/hooks'
 import { useFavoriteBook } from '~/lib/hooks/useFavoriteBook'
 import { useActiveServer } from '~/providers/ActiveServerProvider'
@@ -70,7 +72,7 @@ export default function BookMenu({ data }: Props) {
 	const {
 		activeServer: { id: serverID },
 	} = useActiveServer()
-	const { t } = useTranslate()
+	const { translate } = useTranslate()
 	const client = useQueryClient()
 	const book = useFragment(fragment, data)
 
@@ -122,35 +124,52 @@ export default function BookMenu({ data }: Props) {
 		])
 	}
 
+	const deleteLocalProgress = async () => {
+		try {
+			await db
+				.delete(readProgress)
+				.where(and(eq(readProgress.bookId, book.id), eq(readProgress.serverId, serverID)))
+		} catch (error) {
+			console.error('Failed to delete local progress', {
+				bookId: book.id,
+				serverId: serverID,
+				error,
+			})
+			Sentry.captureException(error, { extra: { bookId: book.id, serverId: serverID } })
+		}
+
+		await onSuccess()
+	}
+
 	const onError = (title: string, error: unknown) => {
 		toast.error(title, {
-			description: extractErrorMessage(error, t('common.unknownError')),
+			description: extractErrorMessage(error, translate('shared.common.unknownError')),
 		})
 	}
 
 	const { mutate: completeBook } = useGraphQLMutation(completedMutation, {
-		onSuccess,
-		onError: (error) => onError(t('bookActions.markAsRead.failure'), error),
+		onSuccess: deleteLocalProgress,
+		onError: (error) => onError(translate('shared.bookActions.markAsRead.failure'), error),
 	})
 	const { mutate: deleteCurrentSession } = useGraphQLMutation(deleteMutation, {
-		onSuccess,
-		onError: (error) => onError(t('bookActions.clearProgress.failure'), error),
+		onSuccess: deleteLocalProgress,
+		onError: (error) => onError(translate('shared.bookActions.clearProgress.failure'), error),
 	})
 	const { mutate: deleteReadHistory } = useGraphQLMutation(deleteHistoryMutation, {
 		onSuccess,
-		onError: (error) => onError(t('bookActions.deleteReadHistory.failure'), error),
+		onError: (error) => onError(translate('shared.bookActions.deleteReadHistory.failure'), error),
 	})
 
 	const confirmMarkAsRead = () => {
-		Alert.alert(
-			t('bookActions.markAsRead.label'),
-			t('bookActions.markAsRead.confirmation', {
+		SystemAlert.alert(
+			translate('shared.bookActions.markAsRead.label'),
+			translate('shared.bookActions.markAsRead.confirmation', {
 				bookTitle: book.resolvedName,
 			}),
 			[
-				{ text: t('common.cancel'), style: 'cancel' },
+				{ text: translate('shared.common.cancel'), style: 'cancel' },
 				{
-					text: t('bookActions.markAsRead.label'),
+					text: translate('shared.bookActions.markAsRead.label'),
 					onPress: () => completeBook({ id: book.id }),
 				},
 			],
@@ -158,15 +177,15 @@ export default function BookMenu({ data }: Props) {
 	}
 
 	const confirmClearProgress = () => {
-		Alert.alert(
-			t('bookActions.clearProgress.label'),
-			t('bookActions.clearProgress.confirmation', {
+		SystemAlert.alert(
+			translate('shared.bookActions.clearProgress.label'),
+			translate('shared.bookActions.clearProgress.confirmation', {
 				bookTitle: book.resolvedName,
 			}),
 			[
-				{ text: t('common.cancel'), style: 'cancel' },
+				{ text: translate('shared.common.cancel'), style: 'cancel' },
 				{
-					text: t('common.clear'),
+					text: translate('shared.common.clear'),
 					style: 'destructive',
 					onPress: () => deleteCurrentSession({ id: book.id }),
 				},
@@ -175,15 +194,15 @@ export default function BookMenu({ data }: Props) {
 	}
 
 	const confirmDeleteReadHistory = () => {
-		Alert.alert(
-			t('bookActions.deleteReadHistory.label'),
-			t('bookActions.deleteReadHistory.confirmation', {
+		SystemAlert.alert(
+			translate('shared.bookActions.deleteReadHistory.label'),
+			translate('shared.bookActions.deleteReadHistory.confirmation', {
 				bookTitle: book.resolvedName,
 			}),
 			[
-				{ text: t('common.cancel'), style: 'cancel' },
+				{ text: translate('shared.common.cancel'), style: 'cancel' },
 				{
-					text: t('bookActions.deleteReadHistory.label'),
+					text: translate('shared.bookActions.deleteReadHistory.label'),
 					style: 'destructive',
 					onPress: () => deleteReadHistory({ id: book.id }),
 				},
@@ -192,15 +211,15 @@ export default function BookMenu({ data }: Props) {
 	}
 
 	const confirmDeleteDownload = () => {
-		Alert.alert(
-			t('bookActions.deleteDownload.label'),
-			t('bookActions.deleteDownload.confirmation', {
+		SystemAlert.alert(
+			translate('shared.bookActions.deleteDownload.label'),
+			translate('shared.bookActions.deleteDownload.confirmation', {
 				bookTitle: book.resolvedName,
 			}),
 			[
-				{ text: t('common.cancel'), style: 'cancel' },
+				{ text: translate('shared.common.cancel'), style: 'cancel' },
 				{
-					text: t('common.delete'),
+					text: translate('shared.common.delete'),
 					style: 'destructive',
 					onPress: () => deleteBook(),
 				},
@@ -243,13 +262,13 @@ export default function BookMenu({ data }: Props) {
 						<Stack.Toolbar.Menu inline>
 							{(isUntouched || isReading) && (
 								<Stack.Toolbar.MenuAction icon="book.closed" onPress={confirmMarkAsRead}>
-									{t('bookActions.markAsRead.label')}
+									{translate('shared.bookActions.markAsRead.label')}
 								</Stack.Toolbar.MenuAction>
 							)}
 
 							{isReading && (
 								<Stack.Toolbar.MenuAction icon="minus.circle" onPress={confirmClearProgress}>
-									{t('bookActions.clearProgress.label')}
+									{translate('shared.bookActions.clearProgress.label')}
 								</Stack.Toolbar.MenuAction>
 							)}
 
@@ -258,7 +277,7 @@ export default function BookMenu({ data }: Props) {
 									icon="rectangle.stack.badge.minus"
 									onPress={confirmDeleteReadHistory}
 								>
-									{t('bookActions.deleteReadHistory.label')}
+									{translate('shared.bookActions.deleteReadHistory.label')}
 								</Stack.Toolbar.MenuAction>
 							)}
 						</Stack.Toolbar.Menu>
@@ -268,7 +287,7 @@ export default function BookMenu({ data }: Props) {
 							onPress={() => router.push(`/stump/${book.id}/libraries/${book.library.id}`)}
 							subtitle={book.library.name}
 						>
-							{t('bookActions.goToLibrary')}
+							{translate('shared.bookActions.goToLibrary')}
 						</Stack.Toolbar.MenuAction>
 
 						<Stack.Toolbar.MenuAction
@@ -276,8 +295,21 @@ export default function BookMenu({ data }: Props) {
 							onPress={() => router.push(`/stump/${book.id}/series/${book.series.id}`)}
 							subtitle={book.series.resolvedName}
 						>
-							{t('bookActions.goToSeries')}
+							{translate('shared.bookActions.goToSeries')}
 						</Stack.Toolbar.MenuAction>
+
+						{!isUntouched && (
+							<Stack.Toolbar.Menu inline>
+								<Stack.Toolbar.MenuAction
+									icon="clock"
+									onPress={() =>
+										router.push(`/stump/${serverID}/books/${book.id}/reading-timeline`)
+									}
+								>
+									{translate('shared.readingTimeline.title')}
+								</Stack.Toolbar.MenuAction>
+							</Stack.Toolbar.Menu>
+						)}
 
 						{isDownloaded && (
 							<Stack.Toolbar.Menu inline>
@@ -286,7 +318,7 @@ export default function BookMenu({ data }: Props) {
 									onPress={() => confirmDeleteDownload()}
 									destructive
 								>
-									{t('bookActions.deleteDownload.label')}
+									{translate('shared.bookActions.deleteDownload.label')}
 								</Stack.Toolbar.MenuAction>
 							</Stack.Toolbar.Menu>
 						)}

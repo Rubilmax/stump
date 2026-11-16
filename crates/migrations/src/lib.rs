@@ -37,6 +37,10 @@ mod m20260825_000000_add_kobo_sync_state;
 mod m20260830_015110_oneshots;
 mod m20260907_000000_fix_kobo_timestamp_types;
 mod m20260907_000000_restore_legacy_epubcfi;
+mod m20260928_173434_bookmark_and_annotation_fks_to_session;
+mod m20261006_152724_journal_entries;
+mod m20261006_225247_reading_devices;
+mod m20261025_235745_drop_navigation_user_prefs;
 
 pub struct Migrator;
 
@@ -80,6 +84,10 @@ impl MigratorTrait for Migrator {
 			Box::new(m20260830_015110_oneshots::Migration),
 			Box::new(m20260907_000000_restore_legacy_epubcfi::Migration),
 			Box::new(m20260907_000000_fix_kobo_timestamp_types::Migration),
+			Box::new(m20260928_173434_bookmark_and_annotation_fks_to_session::Migration),
+			Box::new(m20261006_152724_journal_entries::Migration),
+			Box::new(m20261006_225247_reading_devices::Migration),
+			Box::new(m20261025_235745_drop_navigation_user_prefs::Migration),
 		]
 	}
 }

@@ -1,13 +1,14 @@
-use async_graphql::{Context, Object, Result, ID};
+use async_graphql::{Context, ID, Object, Result};
 use chrono::Utc;
 use models::{
 	entity::{favorite_series, library, library_config, media, series},
 	shared::enums::UserPermission,
 };
 use sea_orm::{
+	ActiveValue::Set,
+	ExprTrait,
 	prelude::*,
 	sea_query::{OnConflict, Query},
-	ActiveValue::Set,
 };
 use stump_core::{
 	image::{bump_series_thumbnail_fallbacks, generate_thumbnail_from_book},
@@ -144,11 +145,7 @@ impl SeriesMutation {
 			.await?
 			.ok_or("Media not found")?;
 
-		let page = input.params.page();
-
-		if book.extension == "epub" && page > 1 {
-			return Err("Cannot set thumbnail from EPUB chapter".into());
-		}
+		let page = input.params.page_for(&book.extension)?;
 
 		let image_options = config
 			.ok_or("Library config not found")?

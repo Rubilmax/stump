@@ -26,6 +26,7 @@ import {
 	useURLPageParams,
 } from '@/components/filters/useFilterScene'
 import GenericEmptyState from '@/components/GenericEmptyState'
+import { PageHeader } from '@/components/sharedLayout'
 import { EntityTableColumnConfiguration } from '@/components/table'
 import TableOrGridLayout from '@/components/TableOrGridLayout'
 import useIsInView from '@/hooks/useIsInView'
@@ -130,25 +131,40 @@ function getQueryKey(
 
 function BookSearchScene() {
 	const [containerRef, isInView] = useIsInView<HTMLDivElement>()
-	const { layoutMode, setLayout, columns, setColumns, persistedOrdering, setPersistedOrdering } =
-		useBooksLayout(
-			'global',
-			useShallow((state) => ({
-				columns: state.columns,
-				layoutMode: state.layout,
-				persistedOrdering: state.ordering,
-				setColumns: state.setColumns,
-				setLayout: state.setLayout,
-				setPersistedOrdering: state.setOrdering,
-			})),
-		)
+	const {
+		layoutMode,
+		setLayout,
+		columns,
+		setColumns,
+		persistedOrdering,
+		setPersistedOrdering,
+		persistedPageSize,
+		setPersistedPageSize,
+	} = useBooksLayout(
+		'global',
+		useShallow((state) => ({
+			columns: state.columns,
+			layoutMode: state.layout,
+			persistedOrdering: state.ordering,
+			persistedPageSize: state.pageSize,
+			setColumns: state.setColumns,
+			setLayout: state.setLayout,
+			setPersistedOrdering: state.setOrdering,
+			setPersistedPageSize: state.setPageSize,
+		})),
+	)
 	const {
 		filters: mediaFilters,
 		ordering,
 		pagination: { page, pageSize: pageSizeMaybeUndefined },
 		setPage,
 		...rest
-	} = useFilterScene({ persistedOrdering, setPersistedOrdering })
+	} = useFilterScene({
+		persistedOrdering,
+		setPersistedOrdering,
+		persistedPageSize,
+		setPersistedPageSize,
+	})
 	const filters = mediaFilters as MediaFilterInput
 	const { search } = useURLKeywordSearch()
 	const searchFilter = useSearchMediaFilter(search)
@@ -343,13 +359,16 @@ function BookSearchScene() {
 
 				<section ref={containerRef} id="grid-top-indicator" className="h-0" />
 
-				<FilterHeader
-					isSearching={isLoading}
-					layoutControls={<TableOrGridLayout layout={layoutMode} setLayout={setLayout} />}
-					orderControls={<URLOrdering entity="media" />}
-					sizeControls={layoutMode === InterfaceLayout.Grid ? <GridSizeSlider /> : undefined}
-					filterControls={<URLFilterDrawer entity="media" />}
-				/>
+				<PageHeader>
+					<FilterHeader
+						isInPageHeader
+						isSearching={isLoading}
+						layoutControls={<TableOrGridLayout layout={layoutMode} setLayout={setLayout} />}
+						orderControls={<URLOrdering entity="media" />}
+						sizeControls={layoutMode === InterfaceLayout.Grid ? <GridSizeSlider /> : undefined}
+						filterControls={<URLFilterDrawer entity="media" />}
+					/>
+				</PageHeader>
 
 				{enableAlphabetSelect && (
 					<BooksAlphabet

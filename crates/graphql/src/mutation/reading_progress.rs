@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use async_graphql::{Context, Object, Result, ID};
+use async_graphql::{Context, ID, Object, Result};
 use chrono::Utc;
 use models::{
 	domain::reading_progress::{
@@ -8,19 +8,19 @@ use models::{
 	},
 	entity::{media, reading_progress_reset, reading_session},
 	services::reading_progress::{
-		derive_readthrough_number, get_book_pages, is_reading_progress_reset,
-		mark_reading_progress_resets, reading_session_sync_timestamp,
-		reset_cumulative_elapsed_seconds, reset_reading_progress, upsert_reading_session,
-		NormalizedProgression,
+		NormalizedProgression, derive_readthrough_number, get_book_pages,
+		is_reading_progress_reset, mark_reading_progress_resets,
+		reading_session_sync_timestamp, reset_cumulative_elapsed_seconds,
+		reset_reading_progress, upsert_reading_session,
 	},
 	shared::enums::ReadingStatus,
 };
 use sea_orm::{
-	prelude::{DateTimeWithTimeZone, Decimal},
 	ActiveModelTrait,
 	ActiveValue::Set,
-	ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect,
-	QueryTrait, TransactionTrait,
+	ColumnTrait, EntityTrait, ExprTrait, IntoActiveModel, QueryFilter, QueryOrder,
+	QuerySelect, QueryTrait, TransactionTrait,
+	prelude::{DateTimeWithTimeZone, Decimal},
 };
 
 use crate::{
@@ -157,7 +157,7 @@ impl ReadProgressMutation {
 					input.percentage.unwrap_or_default() >= Decimal::new(1, 0),
 				);
 				NormalizedProgression {
-					page: None,
+					page: input.locator.page(),
 					locator: Some(input.locator),
 					percentage: input.percentage,
 					elapsed_seconds_delta: input.elapsed_seconds_delta,
@@ -588,7 +588,7 @@ impl ReadProgressMutation {
 			sync_floor_by_book
 				.entry(session.media_id.clone())
 				.and_modify(|current: &mut DateTimeWithTimeZone| {
-					*current = (*current).max(timestamp)
+					*current = std::cmp::max(*current, timestamp)
 				})
 				.or_insert(timestamp);
 		}

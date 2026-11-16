@@ -2,7 +2,7 @@ use std::path::Path;
 
 use epub::doc::EpubDoc;
 use models::shared::readium::{ReadiumLocation, ReadiumLocator};
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -301,8 +301,7 @@ mod tests {
 			"<html><body><span class=\"koboSpan\" id=\"kobo.1.1\">first</span>{}<span class=\"koboSpan\" id=\"kobo.1.2\">last</span></body></html>",
 			"x".repeat(1100)
 		);
-		let second =
-			"<html><body><span class=\"koboSpan\" id=\"kobo.1.1\">second</span></body></html>";
+		let second = "<html><body><span class=\"koboSpan\" id=\"kobo.1.1\">second</span></body></html>";
 
 		KoboPositionMap::from_resources([
 			("OPS/first.xhtml".to_string(), first.into_bytes()),

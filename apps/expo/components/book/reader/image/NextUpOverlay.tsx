@@ -41,7 +41,6 @@ export default function NextUpOverlay({ isVisible, book, onClose }: Props) {
 			duration: 250,
 			easing: Easing.out(Easing.quad),
 		})
-		// eslint-disable-next-line react-compiler/react-compiler
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isVisible])
 
@@ -57,7 +56,6 @@ export default function NextUpOverlay({ isVisible, book, onClose }: Props) {
 	const onReadNext = useCallback(() => {
 		router.replace(
 			{
-				// @ts-expect-error: It is fine, expects string literal with [id]
 				pathname: `/stump/${serverId}/books/${book.id}`,
 			},
 			{

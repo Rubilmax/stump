@@ -4,7 +4,7 @@
 use std::str::Utf8Error;
 
 use axum::http::HeaderValue;
-use base64::{engine::general_purpose::STANDARD_NO_PAD as BASE64, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD_NO_PAD as BASE64};
 use reqwest::header::{InvalidHeaderValue, ToStrError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

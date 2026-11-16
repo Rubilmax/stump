@@ -12,7 +12,7 @@ use models::{
 		permission_set::PermissionSet,
 	},
 };
-use sea_orm::{prelude::*, ActiveValue, QueryOrder};
+use sea_orm::{ActiveValue, ExprTrait, QueryOrder, prelude::*};
 
 use crate::{
 	data::{CoreContext, ServiceContext},

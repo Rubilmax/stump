@@ -1,12 +1,12 @@
 import { useGraphQLMutation } from '@stump/client'
 import { cn, ConfirmationModal, IconButton, ToolTip, usePrevious } from '@stump/components'
 import { extractErrorMessage, graphql, UserPermission } from '@stump/graphql'
-import { useLocaleContext } from '@stump/i18n'
 import { FolderSync } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useAppContext } from '@/context'
+import { useTranslate } from '@/hooks/useTranslate'
 import { useLibraryContextSafe } from '@/scenes/library/context'
 
 import { useFileExplorerContext } from './context'
@@ -24,7 +24,7 @@ export default function OrganizeLibraryFiles() {
 	const libraryContext = useLibraryContextSafe()
 	const { checkPermission } = useAppContext()
 	const { currentPath, rootPath } = useFileExplorerContext()
-	const { t } = useLocaleContext()
+	const { t } = useTranslate()
 
 	const { mutate: organize, isPending } = useGraphQLMutation(mutation, {
 		onSuccess: () => {

@@ -116,7 +116,6 @@ export default function ServerAuthDialog({ isOpen, onClose }: ServerAuthDialogPr
 			grabber
 			grabberOptions={{ color: colors.sheet.grabber }}
 			onDidDismiss={handleDismiss}
-			scrollable={false}
 		>
 			<ScrollView className="p-6">
 				<View className="gap-4 items-start">
@@ -125,6 +124,8 @@ export default function ServerAuthDialog({ isOpen, onClose }: ServerAuthDialogPr
 							className="self-center"
 							source={{ uri: urlJoin(activeServer.url, '/favicon.ico') }}
 							style={{ width: 100, height: 100 }}
+							// see https://github.com/stumpapp/stump/issues/1429
+							allowHardware={false}
 						/>
 					</View>
 
@@ -192,7 +193,7 @@ export default function ServerAuthDialog({ isOpen, onClose }: ServerAuthDialogPr
 
 					<View className="gap-4 w-full">
 						<Button
-							onPress={handleSubmit(onSubmit)}
+							onPress={() => handleSubmit(onSubmit)()}
 							className="mt-4 w-full"
 							roundness="full"
 							disabled={isLoggingIn}

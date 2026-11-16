@@ -1,15 +1,13 @@
-use std::path::PathBuf;
-
 use models::entity::media;
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel};
 use serde_json::Value;
 use tests::fake_data;
 
-use crate::common::{series::setup_single_series_with_n_books, TestApp};
+use crate::common::{TestApp, series::setup_single_series_with_n_books};
 
 fn test_epub_path() -> String {
-	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-		.join("../../core/integration-tests/data/book.epub")
+	tests::fixtures::test_data_dir()
+		.join("book.epub")
 		.canonicalize()
 		.expect("book.epub fixture")
 		.to_string_lossy()

@@ -19,6 +19,14 @@ type Return = IFilterContext
 type UseFilterSceneOptions = {
 	persistedOrdering?: Ordering
 	setPersistedOrdering?: (ordering: Ordering) => void
+	defaultOrdering?: Ordering
+	persistedPageSize?: number
+	setPersistedPageSize?: (pageSize: number) => void
+}
+
+export const SERIES_POSITION_ORDERING: Ordering = {
+	orderBy: MediaMetadataModelOrdering.Number,
+	direction: OrderDirection.Asc,
 }
 
 export const DEFAULT_SERIES_ORDER_BY: SeriesOrderBy[] = [
@@ -145,6 +153,9 @@ export function useSearchSeriesFilter(search: string | undefined): SeriesFilterI
 export function useFilterScene({
 	persistedOrdering,
 	setPersistedOrdering,
+	defaultOrdering,
+	persistedPageSize,
+	setPersistedPageSize,
 }: UseFilterSceneOptions = {}): Return {
 	const [searchParams, setSearchParams] = useSearchParams()
 	const [search, setSearch] = useState<string | undefined>(undefined)
@@ -169,8 +180,10 @@ export function useFilterScene({
 		const orderBy = searchParams.get('orderBy') as OrderingField | null
 		const direction = searchParams.get('direction') as OrderDirection | null
 
-		return orderBy && direction ? { orderBy, direction } : (persistedOrdering ?? {})
-	}, [searchParams, persistedOrdering])
+		return orderBy && direction
+			? { orderBy, direction }
+			: (persistedOrdering ?? defaultOrdering ?? {})
+	}, [searchParams, persistedOrdering, defaultOrdering])
 
 	/**
 	 * An object representation of the pagination params
@@ -180,9 +193,9 @@ export function useFilterScene({
 			page: searchParams.get('page') ? parseInt(searchParams.get('page') as string) : 1,
 			pageSize: searchParams.get('pageSize')
 				? parseInt(searchParams.get('pageSize') as string)
-				: defaultPageSize,
+				: (persistedPageSize ?? defaultPageSize),
 		}),
-		[searchParams, defaultPageSize],
+		[searchParams, persistedPageSize, defaultPageSize],
 	)
 
 	const setOrdering = useCallback(
@@ -211,6 +224,17 @@ export function useFilterScene({
 			})
 		},
 		[setSearchParams],
+	)
+
+	const setPageSize = useCallback(
+		(pageSize: number) => {
+			setPersistedPageSize?.(pageSize)
+			setSearchParams((prev) => {
+				prev.set('pageSize', pageSize.toString())
+				return prev
+			})
+		},
+		[setSearchParams, setPersistedPageSize],
 	)
 
 	/**
@@ -268,6 +292,7 @@ export function useFilterScene({
 		setFilters: handleSetFilters,
 		setOrdering,
 		setPage,
+		setPageSize,
 	}
 }
 
@@ -279,20 +304,20 @@ const MEDIA_METADATA_ORDER_FIELDS: string[] = [
 
 export function useMediaURLOrderBy(ordering: Ordering): MediaOrderBy[] {
 	return useMemo(() => {
-		// check for undefined values
 		if (!ordering || !ordering.orderBy || !ordering.direction) {
 			return DEFAULT_MEDIA_ORDER_BY
 		}
 
 		if (MEDIA_METADATA_ORDER_FIELDS.includes(ordering.orderBy)) {
-			return [
-				{
-					metadata: {
-						field: ordering.orderBy as MediaMetadataModelOrdering,
-						direction: ordering.direction as OrderDirection,
-					},
+			const metadataOrderBy = {
+				metadata: {
+					field: ordering.orderBy as MediaMetadataModelOrdering,
+					direction: ordering.direction as OrderDirection,
 				},
-			] as MediaOrderBy[]
+			} as MediaOrderBy
+			return ordering.orderBy === MediaMetadataModelOrdering.Number
+				? [metadataOrderBy, ...DEFAULT_MEDIA_ORDER_BY]
+				: [metadataOrderBy]
 		}
 
 		return [

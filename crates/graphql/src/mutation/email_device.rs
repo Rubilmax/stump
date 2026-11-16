@@ -6,7 +6,7 @@ use crate::{
 };
 use async_graphql::{Context, Object, Result};
 use models::{entity::registered_email_device, shared::enums::UserPermission};
-use sea_orm::{prelude::*, Set, TryIntoModel};
+use sea_orm::{Set, TryIntoModel, prelude::*};
 
 #[derive(Default)]
 pub struct EmailDeviceMutation;
@@ -75,9 +75,7 @@ impl EmailDeviceMutation {
 		let model = registered_email_device::Entity::delete_by_id(id)
 			.exec_with_returning(conn)
 			.await?
-			.first()
-			.ok_or("Failed to delete email device".to_string())?
-			.clone();
+			.ok_or("Failed to delete email device".to_string())?;
 
 		Ok(RegisteredEmailDevice::from(model))
 	}
