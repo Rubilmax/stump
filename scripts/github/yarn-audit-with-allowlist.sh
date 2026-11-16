@@ -13,7 +13,7 @@ if [ -n "$ALLOWED_ADVISORIES" ]; then
 fi
 
 set +e
-AUDIT_JSON=$(yarn audit --json --groups dependencies 2>&1)
+AUDIT_JSON=$(yarn audit --json --groups dependencies)
 set -e
 
 if ! echo "$AUDIT_JSON" | jq -e 'select(.type == "auditSummary")' > /dev/null 2>&1; then
