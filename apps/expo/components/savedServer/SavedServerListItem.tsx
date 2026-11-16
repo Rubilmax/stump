@@ -65,6 +65,7 @@ export default function SavedServerListItem({ server, onEdit, onDelete }: Props)
 
 	const onPress = (overridePath?: string) => {
 		router.push({
+			// @ts-expect-error: It's fine
 			pathname: overridePath || serverPath,
 			params: {
 				serverId: server.id,

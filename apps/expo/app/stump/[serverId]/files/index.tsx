@@ -52,6 +52,7 @@ export default function Screen() {
 					<Pressable
 						onPress={() =>
 							router.push({
+								// @ts-expect-error: String path
 								pathname: `/stump/[serverId]/files/[path]?friendlyName=${item.name}`,
 								params: {
 									serverId,

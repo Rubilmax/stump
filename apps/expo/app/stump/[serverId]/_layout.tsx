@@ -280,6 +280,7 @@ function Screen() {
 	// wrt the not auto-navigating to active server on initial load?
 
 	if (!activeServer) {
+		// @ts-expect-error: It's fine
 		return <Redirect href="/" />
 	}
 

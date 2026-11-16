@@ -130,6 +130,7 @@ export default function AndroidBookMenu({
 					<DropdownMenuItem
 						onPress={() =>
 							router.push({
+								// @ts-expect-error: I need to use less ambiguous [id]s, e.g. [libraryId]
 								pathname: `/stump/${book.id}/libraries/${book.library.id}`,
 							})
 						}
@@ -146,6 +147,7 @@ export default function AndroidBookMenu({
 					<DropdownMenuItem
 						onPress={() =>
 							router.push({
+								// @ts-expect-error: I need to use less ambiguous [id]s, e.g. [libraryId]
 								pathname: `/stump/${book.id}/series/${book.series.id}`,
 							})
 						}

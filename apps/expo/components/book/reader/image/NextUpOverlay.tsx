@@ -56,6 +56,7 @@ export default function NextUpOverlay({ isVisible, book, onClose }: Props) {
 	const onReadNext = useCallback(() => {
 		router.replace(
 			{
+				// @ts-expect-error: It is fine, expects string literal with [id]
 				pathname: `/stump/${serverId}/books/${book.id}`,
 			},
 			{

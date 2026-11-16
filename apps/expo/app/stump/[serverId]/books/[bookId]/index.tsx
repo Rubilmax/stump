@@ -268,6 +268,7 @@ export default function Screen() {
 		} satisfies MediaFilterInput
 		const filterString = JSON.stringify(filter)
 		router.push({
+			// @ts-expect-error: String path
 			pathname: `/stump/${serverID}/books?initialFilters=${filterString}`,
 		})
 	}
@@ -332,6 +333,7 @@ export default function Screen() {
 							roundness="full"
 							onPress={() =>
 								router.push({
+									// @ts-expect-error: String path
 									pathname: `/stump/${serverID}/books/${bookId}/read`,
 								})
 							}

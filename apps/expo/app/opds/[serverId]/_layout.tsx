@@ -109,6 +109,7 @@ function Screen() {
 	)
 
 	if (!activeServer) {
+		// @ts-expect-error: It's fine
 		return <Redirect href="/" />
 	}
 

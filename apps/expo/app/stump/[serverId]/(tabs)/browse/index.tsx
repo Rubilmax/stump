@@ -87,6 +87,7 @@ export default function Screen() {
 							{visibleItems.map((item, idx) => (
 								<Fragment key={item.id}>
 									<Pressable
+										// @ts-expect-error: String path
 										onPress={() => router.push({ pathname: item.to, params: { serverId } })}
 									>
 										{({ pressed }) => (

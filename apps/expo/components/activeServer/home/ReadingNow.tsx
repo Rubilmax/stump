@@ -235,6 +235,7 @@ function ReadingNowItem({ book }: ReadingNowItemProps) {
 		} satisfies MediaFilterInput
 		const filterString = JSON.stringify(filter)
 		router.push({
+			// @ts-expect-error: String path
 			pathname: `/stump/${serverID}/books?initialFilters=${filterString}`,
 		})
 	}

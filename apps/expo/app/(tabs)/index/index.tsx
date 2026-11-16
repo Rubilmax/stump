@@ -38,6 +38,7 @@ export default function Screen() {
 
 			if (defaultServer) {
 				router.push({
+					// @ts-expect-error: string path
 					pathname: defaultServer.kind === 'stump' ? '/stump/[serverId]' : '/opds/[serverId]',
 					params: { serverId: defaultServer.id },
 				})
